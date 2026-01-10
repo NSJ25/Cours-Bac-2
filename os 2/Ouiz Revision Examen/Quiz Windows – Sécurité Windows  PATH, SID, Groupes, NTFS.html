@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Windows – Sécurité Windows : PATH, SID, Groupes, NTFS</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+h1 { text-align: center; }
+
+#quiz-box {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+#notes-content {
+    white-space: pre-wrap;
+}
+
+.answer { margin: 8px 0; }
+button { margin: 6px 5px 0 0; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+
+#progress { text-align: center; margin-bottom: 10px; font-weight: bold; }
+.feedback { margin-top: 10px; font-weight: bold; }
+
+/* ===== NOTES ===== */
+#notes-box {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+}
+
+#notes-buttons button {
+    background: #e3e7ed;
+    border: none;
+    border-radius: 6px;
+}
+
+#notes-content {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f9fafc;
+    border-left: 4px solid #4a90e2;
+    min-height: 80px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📝 Quiz Windows – Sécurité Windows : PATH, SID, Groupes, NTFS</h1>
+
+<div id="quiz-box">
+
+    <div id="progress"></div>
+    <div id="question"></div>
+    <div id="answers"></div>
+
+    <button id="checkBtn">✅ Vérifier</button>
+    <button id="nextBtn" disabled>➡️ Suivant</button>
+
+    <div id="feedback" class="feedback"></div>
+
+    <!-- ===== NOTES ===== -->
+    <div id="notes-box">
+        <h3>📘 Notes & rappels</h3>
+        <div id="notes-buttons"></div>
+        <div id="notes-content">Clique sur un sujet pour afficher l’explication.</div>
+    </div>
+
+</div>
+
+<script>
+// ======= QUESTIONS (TON CODE INTACT) =======
+const questions = [
+  {q:"Sous Windows, dans quel ordre un exécutable est-il recherché ?", a:{A:"PATH uniquement",B:"Répertoire courant puis PATH",C:"PATH puis répertoire courant",D:"Dossier système uniquement"}, c:"B"},
+  {q:"Quelle variable permet à Windows de reconnaître les extensions exécutables ?", a:{A:"PATH",B:"EXEC",C:"PATHEXT",D:"SHELL"}, c:"C"},
+  {q:"Pourquoi services ne lance PAS services.msc directement ?", a:{A:"Le fichier est protégé",B:".msc n’est pas toujours pris en compte comme exécutable direct",C:"Le service n’est pas démarré",D:"Le PATH est incorrect"}, c:"B"},
+  {q:"Un SID commence toujours par :", a:{A:"S-0",B:"S-1",C:"SID-1",D:"NT-1"}, c:"B"},
+  {q:"Que représente la valeur -5- dans un SID ?", a:{A:"Local Authority",B:"Creator Authority",C:"NT Authority",D:"World Authority"}, c:"C"},
+  
+  {q:"Quel élément identifie de manière unique un utilisateur dans Windows ?", a:{A:"Le nom du compte",B:"Le dossier utilisateur",C:"Le SID",D:"Le groupe principal"}, c:"C"},
+  {q:"Quel est le RID du compte Administrateur intégré ?", a:{A:"1001",B:"501",C:"500",D:"503"}, c:"C"},
+  {q:"Que signifie le RID 1001 ?", a:{A:"Administrateur",B:"Premier utilisateur local créé",C:"Invité",D:"Compte système"}, c:"B"},
+  {q:"Qu’est-ce qu’un SID orphelin ?", a:{A:"Un SID invalide",B:"Un SID sans permissions",C:"Un SID présent sur un objet mais absent de la SAM",D:"Un SID temporaire"}, c:"C"},
+  {q:"À quoi sert le compte DefaultAccount ?", a:{A:"Compte invité",B:"Compte administrateur caché",C:"Contexte utilisateur minimal pour applications UWP",D:"Compte de sauvegarde"}, c:"C"},
+  
+  {q:"Quel compte est utilisé par Windows Defender Application Guard ?", a:{A:"SYSTEM",B:"Network Service",C:"WDAGUtilityAccount",D:"TrustedInstaller"}, c:"C"},
+  {q:"Quel compte possède le SID commençant par S-1-5-80 ?", a:{A:"Administrateur",B:"SYSTEM",C:"TrustedInstaller",D:"Local Service"}, c:"C"},
+  {q:"Quel groupe possède tous les droits sur le système ?", a:{A:"Utilisateurs",B:"Opérateurs de sauvegarde",C:"Administrateurs",D:"Utilisateurs avec pouvoir"}, c:"C"},
+  {q:"Quel groupe représente tous les utilisateurs authentifiés ?", a:{A:"Everyone",B:"Réseau",C:"Utilisateurs authentifiés",D:"Anonymous Logon"}, c:"C"},
+  {q:"Pourquoi faut-il attribuer les permissions aux groupes plutôt qu’aux utilisateurs ?", a:{A:"Windows l’impose",B:"Les utilisateurs changent souvent de SID",C:"La gestion est plus simple et scalable",D:"Les ACL ne supportent pas les utilisateurs"}, c:"C"},
+  
+  {q:"Quel est le format correct d’un chemin UNC ?", a:{A:"C:\\serveur\\partage",B:"\\\\serveur\\partage",C:"//serveur/partage",D:"serveur::partage"}, c:"B"},
+  {q:"Un partage nommé secret$ est :", a:{A:"Public",B:"Chiffré",C:"Caché",D:"Lecture seule"}, c:"C"},
+  {q:"Quelle règle est toujours prioritaire ?", a:{A:"Autorisation NTFS",B:"Autorisation de partage",C:"Refuser",D:"Héritage"}, c:"C"},
+  {q:"Si un utilisateur n’est pas présent dans la DACL, alors :", a:{A:"Il a les droits lecture",B:"Il est refusé implicitement",C:"Il hérite automatiquement",D:"Il devient propriétaire"}, c:"B"},
+  {q:"Lors d’une copie NTFS → NTFS, les permissions :", a:{A:"Sont conservées",B:"Sont supprimées",C:"Proviennent de la destination",D:"Deviennent Administrateur uniquement"}, c:"C"},
+];
+// ======= MÉLANGE =======
+function shuffle(array) {
+    for (let i=array.length-1; i>0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+shuffle(questions);
+
+let index = 0;
+let score = 0;
+let answered = false;
+
+const qDiv = document.getElementById("question");
+const aDiv = document.getElementById("answers");
+const progress = document.getElementById("progress");
+const feedback = document.getElementById("feedback");
+const checkBtn = document.getElementById("checkBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+function loadQuestion() {
+    answered = false;
+    feedback.textContent = "";
+    nextBtn.disabled = true;
+
+    const q = questions[index];
+    progress.textContent = `Question ${index + 1} / ${questions.length}`;
+    qDiv.innerHTML = `<h3>${q.q}</h3>`;
+    aDiv.innerHTML = "";
+
+    let answers = Object.entries(q.a).map(([key,text])=>({
+        key,
+        text,
+        correct: key===q.c
+    }));
+    shuffle(answers);
+
+    answers.forEach(ans=>{
+        aDiv.innerHTML += `
+        <div class="answer">
+            <label>
+                <input type="radio" name="answer" value="${ans.correct}">
+                ${ans.text}
+            </label>
+        </div>`;
+    });
+}
+
+function checkAnswer() {
+    if(answered) return;
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if(!selected) return alert("⚠️ Sélectionne une réponse");
+
+    answered = true;
+    nextBtn.disabled = false;
+
+    if(selected.value==="true") {
+        score++;
+        feedback.style.color = "green";
+        feedback.textContent = "✅ Bonne réponse !";
+    } else {
+        feedback.style.color = "red";
+        const good = document.querySelector('input[value="true"]').parentElement.textContent;
+        feedback.innerHTML = `❌ Mauvaise réponse.<br>✔️ ${good}`;
+    }
+}
+
+function nextQuestion() {
+    index++;
+    if(index < questions.length) {
+        loadQuestion();
+    } else {
+        const percent = Math.round((score/questions.length)*100);
+        let msg = percent >= 50 ? "🎉 Félicitations, vous avez réussi !" : "❌ Tu es une grosse merde, retente ta chance, bouffon !";
+        document.getElementById("quiz-box").innerHTML =
+        `<h2>Résultat final</h2>
+         <p>Score : <strong>${score} / ${questions.length}</strong></p>
+         <p>Pourcentage : <strong>${percent}%</strong></p>
+         <p>${msg}</p>`;
+    }
+}
+
+checkBtn.addEventListener("click", checkAnswer);
+nextBtn.addEventListener("click", nextQuestion);
+
+// ======= NOTES / RAPPELS =======
+const notesTopics = [
+{
+  title: "PATH Windows",
+  content: `
+- PATH : variable d'environnement qui liste les dossiers où Windows recherche les exécutables.
+- Lorsqu'on exécute une commande :
+  1. Recherche dans le répertoire courant
+  2. Recherche dans les dossiers listés dans PATH dans l'ordre
+- Extensions reconnues via PATHEXT : .COM, .EXE, .BAT, .CMD, .VBS, .JS, .JSE, .WSF, .MSC
+- Exemple : python.exe ou python.py doivent être dans un dossier du PATH pour être exécutables directement
+- Linux : PATH similaire, mais permissions gérées par chmod et extension non obligatoire
+`
+},
+
+{
+  title: "SID – Security Identifier",
+  content: `
+- Identifiant unique d’un utilisateur ou groupe
+- Commence toujours par S-1
+- Structure :
+  - S-1-0 : Null Authority
+  - S-1-1 : World Authority
+  - S-1-2 : Local Authority
+    - 2-0 : utilisateur/service local
+    - 2-1 : console logon (physique)
+  - S-1-3 : Creator Owner Authority
+  - S-1-5 : NT Authority (majorité des SID Windows)
+  - S-1-9 : Resource Manager (RMS)
+- Exemples courants :
+  - S-1-5-21 → domaine ou ordinateur spécifique
+  - S-1-5-21-500 : Administrateur
+  - S-1-5-21-501 : Guest
+  - S-1-5-21-503 : DefaultAccount (utilisateur restreint pour UWP)
+  - S-1-5-21-504 : WDAGUtilityAccount (Windows Defender Application Guard)
+`
+},
+
+{
+  title: "RID – Relative Identifier",
+  content: `
+- Partie du SID qui identifie un objet dans un domaine spécifique
+- Complète le SID pour créer un identifiant unique global
+- Exemples de RIDs :
+  - 500 : Administrateur
+  - 501 : Invité
+  - 503 : DefaultAccount
+  - 504 : WDAGUtilityAccount
+- Utilisé pour isoler les comptes techniques ou services
+- Garantit que chaque compte a un SID unique même dans le même domaine
+`
+},
+
+{
+  title: "Comptes techniques et WDAG",
+  content: `
+- WDAGUtilityAccount : utilisé par Windows Defender Application Guard
+  - Fournit un contexte utilisateur isolé pour les applications universelles (UWP)
+  - Exécution sécurisée dans des conteneurs protégés
+- TrustedInstaller :
+  - Compte spécial lié à NT Authority
+  - Utilisé par Windows Modules Installer
+  - Garantit la sécurité des fichiers système et la gestion des mises à jour
+- GuardedHost / Hyper-V Platform :
+  - Fournit un environnement sécurisé pour les machines virtuelles et containers
+  - Garantit l’isolation des sessions et des ressources
+`
+},
+
+{
+  title: "Groupes d’utilisateurs Windows",
+  content: `
+- Administrateurs : tous les droits sur le système
+- Opérateurs de sauvegarde : droits limités aux sauvegardes
+- Invités : droits très restreints
+- Utilisateurs standards : droits limités à leurs fichiers/dossiers
+- Recouvreur (Recovery) : accès aux opérations de récupération
+- Utilisateur anonyme / tout le monde / réseau / authentifié
+- Créateur propriétaire : propriétaire par défaut d’un objet créé
+- Gestion des groupes :
+  - Ne jamais assigner des permissions directement à un utilisateur
+  - Ajouter l’utilisateur au groupe approprié pour hériter des permissions
+`
+},
+
+{
+  title: "Partages de dossiers et permissions",
+  content: `
+- Partages normaux vs partages cachés :
+  - Cachés : nom du partage se termine par $
+- Types d’autorisations sur fichiers/dossiers :
+  - Lecture (R)
+  - Lecture/Exécution (RX)
+  - Modification (M)
+  - Contrôle total (CR)
+- Règles importantes :
+  - Si un utilisateur n’est pas dans la DACL → accès refusé implicitement
+  - Les autorisations refusées > autorisations accordées
+  - Les autorisations sur fichiers > autorisations sur dossiers
+`
+},
+
+{
+  title: "Groupes Windows",
+  content: `
+- Administrateurs : tous droits sur le système
+- Opérateurs de sauvegarde : droits sur les sauvegardes et restauration
+- Invités : droits très limités
+- Utilisateurs standards : droits restreints, pas de privilèges élevés
+- Opérateurs d’impression : gérer les imprimantes et files d’impression
+- Utilisateur anonyme : accès minimal sans authentification
+- Tout le monde (Everyone) : inclut tous les utilisateurs locaux et réseau
+- Utilisateurs réseau : comptes connectés via réseau
+- Utilisateurs authentifiés : comptes avec authentification valide
+- Créateur propriétaire : propriétaire par défaut d’un objet créé, peut gérer permissions
+`
+},
+
+{
+  title: "Partages cachés",
+  content: `
+- Partage caché : nom du partage se termine par '$'
+- Exemple : C$ pour le disque C
+- Utilisé pour les opérations administratives ou systèmes
+- Les partages cachés ne sont pas visibles dans l’explorateur réseau
+- Accès soumis aux permissions NTFS et aux autorisations de partage
+`
+},
+
+{
+  title: "NTFS (New Technology File System)",
+  content: `
+- Système de fichiers fiable, sécurisé et performant
+- Gestion de l’espace disque optimisée
+- Supporte :
+  - Permissions fines sur fichiers et dossiers
+  - Journaux pour récupération d’erreurs
+  - Cryptage et quotas
+  - Attributs standards et étendus
+`
+},
+
+{
+  title: "Permissions NTFS",
+  content: `
+- Lecture : lire le contenu du fichier ou dossier
+- Lecture des attributs : lire les attributs standards
+- Lecture des attributs étendus : lire les métadonnées supplémentaires
+- Écriture : modifier le contenu du fichier
+- Création de fichiers : ajouter de nouveaux fichiers
+- Création de dossiers : ajouter de nouveaux dossiers
+- Écriture des attributs : modifier les attributs standards
+- Écriture des attributs étendus : modifier les métadonnées supplémentaires
+- Suppression de sous-répertoires et fichiers : retirer des fichiers/dossiers enfants
+- Suppression : supprimer le fichier ou dossier
+- Lire les permissions : voir les ACL
+- Changer les permissions : modifier les ACL
+- Prendre possession (take ownership) : l’administrateur peut toujours prendre la main sur un fichier ou dossier
+`
+},
+
+{
+  title: "Résumé pratique PATH / SID / RID / Comptes",
+  content: `
+- PATH : dossiers où le système recherche les exécutables
+- SID : identifiant unique d’un utilisateur ou groupe
+- RID : partie du SID relative à un objet dans un domaine
+- Comptes techniques (WDAGUtility, TrustedInstaller) assurent isolation et sécurité
+- Groupes : attribuer les droits via groupes, pas individuellement
+- Partages : respecter DACL et hiérarchie permissions
+`
+}
+
+];
+
+const notesButtons = document.getElementById("notes-buttons");
+const notesContent = document.getElementById("notes-content");
+
+notesTopics.forEach(topic => {
+    const btn = document.createElement("button");
+    btn.textContent = topic.title;
+    btn.onclick = () => notesContent.innerHTML = topic.content;
+    notesButtons.appendChild(btn);
+});
+
+loadQuestion();
+</script>
+
+</body>
+</html>

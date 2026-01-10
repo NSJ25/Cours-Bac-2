@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Windows – Gestion des utilisateurs et groupes</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+h1 { text-align: center; }
+
+#quiz-box {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+#notes-content {
+    white-space: pre-wrap;
+}
+
+.answer { margin: 8px 0; }
+button { margin: 6px 5px 0 0; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+
+#progress { text-align: center; margin-bottom: 10px; font-weight: bold; }
+.feedback { margin-top: 10px; font-weight: bold; }
+
+/* ===== NOTES ===== */
+#notes-box {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+}
+
+#notes-buttons button {
+    background: #e3e7ed;
+    border: none;
+    border-radius: 6px;
+}
+
+#notes-content {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f9fafc;
+    border-left: 4px solid #4a90e2;
+    min-height: 80px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📝 Quiz Windows – Gestion des utilisateurs et groupes</h1>
+
+<div id="quiz-box">
+
+    <div id="progress"></div>
+    <div id="question"></div>
+    <div id="answers"></div>
+
+    <button id="checkBtn">✅ Vérifier</button>
+    <button id="nextBtn" disabled>➡️ Suivant</button>
+
+    <div id="feedback" class="feedback"></div>
+
+    <!-- ===== NOTES ===== -->
+    <div id="notes-box">
+        <h3>📘 Notes & rappels</h3>
+        <div id="notes-buttons"></div>
+        <div id="notes-content">Clique sur un sujet pour afficher l’explication.</div>
+    </div>
+
+</div>
+
+<script>
+// ======= QUESTIONS (TON CODE INTACT) =======
+const questions = [
+{q:"Que contient la base SAM (Security Account Manager) ?", a:{A:"Les utilisateurs, groupes et hashes de mots de passe",B:"Les pilotes matériels",C:"Les fichiers système",D:"Les journaux d’événements"}, c:"A"},
+{q:"Quel processus a le droit exclusif de lire et écrire dans la SAM ?", a:{A:"LSASS (Local Security Authority Subsystem Service)",B:"Winlogon.exe",C:"Explorer.exe",D:"csrss.exe"}, c:"A"},
+{q:"Quelle commande PowerShell permet de lister les utilisateurs locaux ?", a:{A:"Get-LocalUser",B:"List-Users",C:"Get-User",D:"Show-Accounts"}, c:"A"},
+{q:"Quel est le rôle du compte Administrateur ?", a:{A:"Super-utilisateur avec SID se terminant par -500",B:"Compte temporaire sans privilèges",C:"Compte système isolé",D:"Compte invité désactivé"}, c:"A"},
+{q:"À quoi sert la classe System.Security.SecureString ?", a:{A:"Stocker un mot de passe chiffré en mémoire",B:"Créer un utilisateur",C:"Modifier la SAM directement",D:"Afficher les fichiers utilisateur"}, c:"A"},
+  
+{q:"Que fait la commande New-LocalUser ?", a:{A:"Crée un nouvel utilisateur et génère un SID",B:"Supprime un utilisateur",C:"Liste les utilisateurs",D:"Modifie le mot de passe d’un utilisateur"}, c:"A"},
+{q:"Que signifie le principe du moindre privilège (PoLP) ?", a:{A:"Un utilisateur ne possède que les droits nécessaires pour sa tâche",B:"Tous les utilisateurs sont administrateurs",C:"Les utilisateurs peuvent changer tous les fichiers système",D:"Un utilisateur peut modifier tous les groupes"}, c:"A"},
+{q:"Quelle est la meilleure pratique pour assigner des permissions aux utilisateurs ?", a:{A:"Affecter les permissions à un groupe, puis ajouter l’utilisateur",B:"Affecter les permissions directement à chaque utilisateur",C:"Ne jamais modifier les permissions",D:"Partager les permissions par mot de passe"}, c:"A"},
+{q:"Que se passe-t-il si un utilisateur est désactivé dans la SAM ?", a:{A:"Son SID et profil restent, mais l’accès est bloqué",B:"Le compte et le SID sont supprimés",C:"Tous les fichiers sont supprimés",D:"Le compte devient Administrateur"}, c:"A"},
+{q:"Que devient un fichier créé par un utilisateur supprimé ?", a:{A:"Il existe toujours avec un SID orphelin",B:"Il est automatiquement supprimé",C:"Il devient public",D:"Il est transféré à l’administrateur"}, c:"A"},
+
+{q:"Quel est l’objectif du GPO (Group Policy Object) pour les mots de passe ?", a:{A:"Définir des règles de sécurité, comme la longueur minimale",B:"Supprimer les utilisateurs",C:"Créer de nouveaux comptes système",D:"Modifier la SAM directement"}, c:"A"},
+{q:"Que fait l’attribut MustChangePassword ?", a:{A:"Force l’utilisateur à définir son mot de passe à la première connexion",B:"Supprime le mot de passe",C:"Crée un mot de passe aléatoire",D:"Donne tous les droits administratifs"}, c:"A"},
+{q:"Quel compte est utilisé pour exécuter les applications dans un conteneur isolé ?", a:{A:"WDAGUtilityAccount",B:"Guest",C:"Administrateur",D:"SYSTEM"}, c:"A"},
+{q:"Pourquoi n’est-il pas conseillé d’ajouter un utilisateur au groupe Administrators par défaut ?", a:{A:"Pour limiter les dégâts en cas d’attaque ou d’erreur",B:"Pour simplifier la gestion",C:"Pour permettre tous les accès",D:"Pour supprimer le profil utilisateur"}, c:"A"},
+{q:"Que signifie un SID orphelin ?", a:{A:"Le propriétaire d’un fichier ou dossier n’a plus de compte associé",B:"Le compte est actif mais désactivé",C:"Le SID est supprimé mais les fichiers sont détruits",D:"Le fichier est verrouillé par l’administrateur"}, c:"A"},
+
+{q:"Quel élément contient physiquement les comptes utilisateurs locaux ?", a:{A:"Active Directory",B:"La base SAM",C:"Le dossier C:\\Users",D:"Le service UAC"}, c:"B"},
+{q:"Pourquoi PowerShell ne peut-il pas modifier directement le fichier SAM ?", a:{A:"Il est chiffré par BitLocker",B:"Il est protégé par NTFS",C:"Seul LSASS peut y accéder",D:"Il est stocké dans le cloud"}, c:"C"},
+{q:"Quelle commande PowerShell effectue une requête en lecture seule vers la SAM ?", a:{A:"New-LocalUser",B:"Set-LocalUser",C:"Get-LocalUser",D:"Remove-LocalUser"}, c:"C"},
+{q:"Quel compte est désactivé par défaut sur Windows ?", a:{A:"Administrateur",B:"WDAGUtilityAccount",C:"Guest",D:"DefaultAccount"}, c:"C"},
+{q:"Quel est le rôle principal de SecureString ?", a:{A:"Stocker le mot de passe dans un fichier sécurisé",B:"Empêcher l’affichage du mot de passe à l’écran",C:"Protéger le mot de passe en mémoire",D:"Chiffrer la base SAM"}, c:"C"},
+
+{q:"Lors de la création d’un utilisateur local, quel élément est immuable ?", a:{A:"Le nom d’utilisateur",B:"Le mot de passe",C:"Le SID",D:"Le groupe principal"}, c:"C"},
+{q:"Pourquoi le dossier C:\\Users\\username n’est-il pas créé immédiatement ?", a:{A:"Il est créé manuellement",B:"Il est généré lors de la première connexion",C:"Il dépend des GPO",D:"Il est stocké dans la SAM"}, c:"B"},
+{q:"Quelle est la cause la plus probable d’un échec de création de mot de passe simple ?", a:{A:"LSASS est arrêté",B:"PowerShell est obsolète",C:"Une stratégie GPO est appliquée",D:"Le SID existe déjà"}, c:"C"},
+{q:"Quel est l’objectif principal du principe du moindre privilège ?", a:{A:"Simplifier la gestion des utilisateurs",B:"Réduire l’impact d’une compromission",C:"Améliorer les performances",D:"Supprimer les comptes inutiles"}, c:"B"},
+{q:"Pourquoi ne faut-il pas attribuer des permissions directement à un utilisateur ?", a:{A:"Les utilisateurs changent souvent de nom",B:"Cela viole les règles NTFS",C:"La gestion devient complexe et non scalable",D:"Windows ne le permet pas"}, c:"C"},
+
+{q:"Quelle est la bonne syntaxe pour un utilisateur local dans une ACL ?", a:{A:"utilisateur@machine",B:"machine/utilisateur",C:"[Source_SAM][Utilisateur]",D:"SID:Utilisateur"}, c:"C"},
+{q:"Que se passe-t-il lorsqu’un utilisateur est supprimé ?", a:{A:"Son compte est désactivé",B:"Son SID est conservé",C:"Son SID disparaît définitivement de la SAM",D:"Ses fichiers sont supprimés"}, c:"C"},
+{q:"Un fichier appartient à un SID inexistant dans la SAM. C’est :", a:{A:"Un compte corrompu",B:"Un SID invalide",C:"Un SID orphelin",D:"Un compte fantôme"}, c:"C"},
+{q:"Quel scénario est le plus dangereux ?", a:{A:"Un utilisateur standard infecté",B:"Un utilisateur désactivé",C:"Un administrateur exécutant un malware",D:"Un SID orphelin"}, c:"C"},
+{q:"Quelle affirmation est correcte ?", a:{A:"Le nom d’utilisateur est utilisé pour les permissions",B:"Le SID est utilisé pour les permissions",C:"Le dossier utilisateur définit les droits",D:"La GPO remplace les ACL"}, c:"B"}
+
+];
+// ======= MÉLANGE =======
+function shuffle(array) {
+    for (let i=array.length-1; i>0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+shuffle(questions);
+
+let index = 0;
+let score = 0;
+let answered = false;
+
+const qDiv = document.getElementById("question");
+const aDiv = document.getElementById("answers");
+const progress = document.getElementById("progress");
+const feedback = document.getElementById("feedback");
+const checkBtn = document.getElementById("checkBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+function loadQuestion() {
+    answered = false;
+    feedback.textContent = "";
+    nextBtn.disabled = true;
+
+    const q = questions[index];
+    progress.textContent = `Question ${index + 1} / ${questions.length}`;
+    qDiv.innerHTML = `<h3>${q.q}</h3>`;
+    aDiv.innerHTML = "";
+
+    let answers = Object.entries(q.a).map(([key,text])=>({
+        key,
+        text,
+        correct: key===q.c
+    }));
+    shuffle(answers);
+
+    answers.forEach(ans=>{
+        aDiv.innerHTML += `
+        <div class="answer">
+            <label>
+                <input type="radio" name="answer" value="${ans.correct}">
+                ${ans.text}
+            </label>
+        </div>`;
+    });
+}
+
+function checkAnswer() {
+    if(answered) return;
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if(!selected) return alert("⚠️ Sélectionne une réponse");
+
+    answered = true;
+    nextBtn.disabled = false;
+
+    if(selected.value==="true") {
+        score++;
+        feedback.style.color = "green";
+        feedback.textContent = "✅ Bonne réponse !";
+    } else {
+        feedback.style.color = "red";
+        const good = document.querySelector('input[value="true"]').parentElement.textContent;
+        feedback.innerHTML = `❌ Mauvaise réponse.<br>✔️ ${good}`;
+    }
+}
+
+function nextQuestion() {
+    index++;
+    if(index < questions.length) {
+        loadQuestion();
+    } else {
+        const percent = Math.round((score/questions.length)*100);
+        let msg = percent >= 50 ? "🎉 Félicitations, vous avez réussi !" : "❌ Tu es une grosse merde, retente ta chance, bouffon !";
+        document.getElementById("quiz-box").innerHTML =
+        `<h2>Résultat final</h2>
+         <p>Score : <strong>${score} / ${questions.length}</strong></p>
+         <p>Pourcentage : <strong>${percent}%</strong></p>
+         <p>${msg}</p>`;
+    }
+}
+
+checkBtn.addEventListener("click", checkAnswer);
+nextBtn.addEventListener("click", nextQuestion);
+
+// ======= NOTES / RAPPELS =======
+const notesTopics = [
+{
+  title: "SAM (Security Account Manager)",
+  content: `
+- La base SAM contient toutes les informations sur les comptes utilisateurs et groupes locaux.
+- Stockée dans : C:\\Windows\\System32\\config\\SAM
+- Structure : ruche de registre
+- Permet :
+  - Gestion utilisateurs / groupes
+  - Stockage des hashes de mots de passe
+- Accessible via :
+  - lusrmgr.msc (GUI)
+  - PowerShell
+- Le service LSASS (Local Security Authority Subsystem Service) est le seul processus pouvant lire et écrire dans la base SAM
+`
+},
+
+{
+  title: "LSASS et accès SAM",
+  content: `
+- LSASS : seul processus autorisé à manipuler le fichier SAM
+- Tentative d’ouverture avec Notepad++ ou autre éditeur → fichier inaccessible / message "fichier introuvable"
+- LSASS applique la sécurité et l’intégrité des informations d’authentification
+- PowerShell peut interagir avec la SAM via les cmdlets locales, mais LSASS reste l’intermédiaire
+`
+},
+
+{
+  title: "Afficher les utilisateurs et types",
+  content: `
+- Cmdlet PowerShell : Get-LocalUser
+- Types d’utilisateurs :
+  - Administrateur (SID 500)
+  - Utilisateurs standard
+  - Guests
+  - Comptes spéciaux : WDA Utility Accounts, LSASS (SID 10)
+- Windows Defender Application Guard (WDAG) crée des comptes spécifiques pour le sandboxing
+- Chaque utilisateur a un profil, un SID (Security Identifier) et des permissions
+`
+},
+
+{
+  title: "SecureString et PowerShell",
+  content: `
+- SecureString : classe System.Security.SecureString
+- Objet utilisé par PowerShell pour stocker des données sensibles (mots de passe)
+- Caractéristiques :
+  - Chiffrement en mémoire
+  - Ne peut pas être lu directement en clair
+- Exemple :
+  - PowerShell crée un objet SecureString pour stocker un mot de passe lors de la création d’un nouvel utilisateur
+- LSASS interagit avec ces objets pour authentifier et valider les credentials
+`
+},
+
+{
+  title: "Créer un nouvel utilisateur avec PowerShell",
+  content: `
+- Cmdlet : New-LocalUser
+- Exemple : New-LocalUser -Name "Etudiant" -Password (ConvertTo-SecureString "MotDePasse" -AsPlainText -Force)
+- LSASS vérifie et stocke les informations dans la SAM
+- Les droits et groupes déterminent l’accès aux ressources
+`
+},
+
+{
+  title: "Cycle de vie d’un utilisateur",
+  content: `
+- Création : New-LocalUser
+- Désactivation : Disable-LocalUser
+    - Compte bloqué, profil intact, SSID reste
+- Réactivation : Enable-LocalUser
+- Suppression : Remove-LocalUser
+    - Compte supprimé définitivement
+    - SID / profil associé peuvent devenir orphelins (non assignés)
+`
+},
+
+{
+  title: "Principe de moindre privilège (POLP)",
+  content: `
+- Ne jamais donner plus de droits que nécessaire
+- Permissions attribuées aux groupes, pas directement aux utilisateurs
+- Gestion via l’ajout/suppression d’utilisateurs aux groupes
+- Exemple :
+  - Administrateurs : tous les droits sur le système
+  - Utilisateurs standard : droits limités à leurs fichiers / dossiers
+- Réduit le risque de compromission du système
+`
+},
+
+{
+  title: "SID orphelin",
+  content: `
+- SID : identifiant unique d’un utilisateur ou groupe
+- SID orphelin : SID associé à un compte supprimé mais encore présent dans les ACL
+- Peut causer des problèmes d’accès ou permissions inutilisées
+- Désactiver plutôt que supprimer si on souhaite conserver les profils et données
+`
+}
+
+];
+
+const notesButtons = document.getElementById("notes-buttons");
+const notesContent = document.getElementById("notes-content");
+
+notesTopics.forEach(topic => {
+    const btn = document.createElement("button");
+    btn.textContent = topic.title;
+    btn.onclick = () => notesContent.innerHTML = topic.content;
+    notesButtons.appendChild(btn);
+});
+
+loadQuestion();
+</script>
+
+</body>
+</html>

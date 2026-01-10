@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Windows – BIOS / UEFI / HAL</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+h1 { text-align: center; }
+
+#quiz-box {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+#notes-content {
+    white-space: pre-wrap;
+}
+
+.answer { margin: 8px 0; }
+button { margin: 6px 5px 0 0; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+
+#progress { text-align: center; margin-bottom: 10px; font-weight: bold; }
+.feedback { margin-top: 10px; font-weight: bold; }
+
+/* ===== NOTES ===== */
+#notes-box {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+}
+
+#notes-buttons button {
+    background: #e3e7ed;
+    border: none;
+    border-radius: 6px;
+}
+
+#notes-content {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f9fafc;
+    border-left: 4px solid #4a90e2;
+    min-height: 80px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📝 Quiz Windows – BIOS / UEFI / HAL</h1>
+
+<div id="quiz-box">
+
+    <div id="progress"></div>
+    <div id="question"></div>
+    <div id="answers"></div>
+
+    <button id="checkBtn">✅ Vérifier</button>
+    <button id="nextBtn" disabled>➡️ Suivant</button>
+
+    <div id="feedback" class="feedback"></div>
+
+    <!-- ===== NOTES ===== -->
+    <div id="notes-box">
+        <h3>📘 Notes & rappels</h3>
+        <div id="notes-buttons"></div>
+        <div id="notes-content">Clique sur un sujet pour afficher l’explication.</div>
+    </div>
+
+</div>
+
+<script>
+// ======= QUESTIONS (TON CODE INTACT) =======
+const questions = [
+{q:"Quel est le rôle principal du BIOS ?", a:{A:"Initialiser le matériel et lancer le système d’exploitation",B:"Gérer les utilisateurs",C:"Gérer la mémoire virtuelle",D:"Gérer le réseau"}, c:"A"},
+{q:"Que signifie BIOS ?", a:{A:"Basic Input Output System",B:"Binary Input Operating System",C:"Boot Internal Operating Software",D:"Basic Interface Operating Software"}, c:"A"},
+{q:"Qu’est-ce que le POST ?", a:{A:"Une phase de test et d’initialisation du matériel",B:"Un chargeur de système d’exploitation",C:"Un pilote matériel",D:"Une table de partitions"}, c:"A"},
+{q:"Où se trouve le MBR sur un disque ?", a:{A:"Cylindre 0, tête 0, secteur 1",B:"Dernier secteur du disque",C:"Dans la partition système",D:"Dans la mémoire RAM"}, c:"A"},
+{q:"Quelle est la taille du MBR ?", a:{A:"512 octets",B:"256 octets",C:"1024 octets",D:"4096 octets"}, c:"A"},
+
+{q:"Quelle est une limitation majeure du MBR ?", a:{A:"Disques limités à ±2 TB",B:"Absence de système de fichiers",C:"Absence de bootloader",D:"Incompatibilité avec Windows"}, c:"A"},
+{q:"Quel type d’adressage utilise le MBR ?", a:{A:"CHS (Cylinder Head Sector)",B:"LBA 64 bits",C:"GPT",D:"UUID"}, c:"A"},
+{q:"Quel est le successeur du BIOS ?", a:{A:"UEFI",B:"NTFS",C:"HAL",D:"GPT"}, c:"A"},
+{q:"Quel est un avantage majeur de l’UEFI ?", a:{A:"Démarrage sécurisé et support des disques > 2 TB",B:"Fonctionnement uniquement en 16 bits",C:"Absence d’interface graphique",D:"Compatibilité exclusive avec MBR"}, c:"A"},
+{q:"Qu’est-ce que le Secure Boot ?", a:{A:"Une vérification cryptographique de l’intégrité du démarrage",B:"Un antivirus intégré à Windows",C:"Un système de sauvegarde",D:"Un type de partition"}, c:"A"},
+
+{q:"Quel système de partitionnement est utilisé avec UEFI ?", a:{A:"GPT",B:"MBR",C:"FAT",D:"NTFS"}, c:"A"},
+{q:"Combien de partitions logiques GPT supporte Windows ?", a:{A:"128",B:"32",C:"16",D:"4"}, c:"A"},
+{q:"Quel est le rôle de la partition ESP ?", a:{A:"Contenir les fichiers de démarrage UEFI",B:"Stocker les données utilisateur",C:"Contenir le swap",D:"Contenir le BIOS"}, c:"A"},
+{q:"Quel format de fichier est utilisé pour l’ESP ?", a:{A:"FAT32",B:"NTFS",C:"ext4",D:"exFAT"}, c:"A"},
+{q:"Quel fichier est le bootloader Windows en UEFI ?", a:{A:"bootmgrfw.efi",B:"ntldr",C:"winload.exe",D:"grub.cfg"}, c:"A"},
+
+{q:"Quel composant charge le noyau Windows en UEFI ?", a:{A:"winload.efi",B:"boot.ini",C:"ntldr",D:"hal.dll"}, c:"A"},
+{q:"Quel est le nom du noyau Windows ?", a:{A:"ntoskrnl.exe",B:"wininit.exe",C:"csrss.exe",D:"services.exe"}, c:"A"},
+{q:"Quel est le rôle de la HAL ?", a:{A:"Abstraire le matériel pour le noyau",B:"Gérer les utilisateurs",C:"Gérer le réseau",D:"Gérer le stockage"}, c:"A"},
+{q:"Pourquoi la HAL est-elle essentielle ?", a:{A:"Elle permet la portabilité de Windows sur différents matériels",B:"Elle améliore l’interface graphique",C:"Elle remplace les pilotes",D:"Elle chiffre le disque"}, c:"A"},
+{q:"Qu’est-ce que le TPM ?", a:{A:"Un module matériel de sécurité pour clés et certificats",B:"Un système de fichiers",C:"Un pilote graphique",D:"Une partition système"}, c:"A"},
+
+{q:"Quel est le rôle du CSM en UEFI ?", a:{A:"Assurer la compatibilité avec les anciens systèmes BIOS",B:"Remplacer GPT",C:"Activer Secure Boot",D:"Gérer le TPM"}, c:"A"},
+{q:"En mode UEFI natif, le démarrage se fait en :", a:{A:"32 ou 64 bits",B:"16 bits uniquement",C:"Mode réel DOS",D:"Mode texte uniquement"}, c:"A"},
+{q:"Quelle phase initialise la mémoire en UEFI ?", a:{A:"PEI (Pre-EFI Initialization)",B:"SEC uniquement",C:"DXE uniquement",D:"BDS"}, c:"A"},
+{q:"Quel est l’objectif principal de GPT ?", a:{A:"Fiabilité, redondance et grande capacité disque",B:"Compatibilité DOS",C:"Réduction du nombre de partitions",D:"Fonctionnement en 16 bits"}, c:"A"},
+{q:"Pourquoi Windows ne permet-il pas l’accès direct au matériel ?", a:{A:"Pour garantir la stabilité et la sécurité du système",B:"Pour ralentir l’exécution",C:"Pour simplifier le code applicatif",D:"Pour limiter les pilotes"}, c:"A"}
+];
+// ======= MÉLANGE =======
+function shuffle(array) {
+    for (let i=array.length-1; i>0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+shuffle(questions);
+
+let index = 0;
+let score = 0;
+let answered = false;
+
+const qDiv = document.getElementById("question");
+const aDiv = document.getElementById("answers");
+const progress = document.getElementById("progress");
+const feedback = document.getElementById("feedback");
+const checkBtn = document.getElementById("checkBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+function loadQuestion() {
+    answered = false;
+    feedback.textContent = "";
+    nextBtn.disabled = true;
+
+    const q = questions[index];
+    progress.textContent = `Question ${index + 1} / ${questions.length}`;
+    qDiv.innerHTML = `<h3>${q.q}</h3>`;
+    aDiv.innerHTML = "";
+
+    let answers = Object.entries(q.a).map(([key,text])=>({
+        key,
+        text,
+        correct: key===q.c
+    }));
+    shuffle(answers);
+
+    answers.forEach(ans=>{
+        aDiv.innerHTML += `
+        <div class="answer">
+            <label>
+                <input type="radio" name="answer" value="${ans.correct}">
+                ${ans.text}
+            </label>
+        </div>`;
+    });
+}
+
+function checkAnswer() {
+    if(answered) return;
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if(!selected) return alert("⚠️ Sélectionne une réponse");
+
+    answered = true;
+    nextBtn.disabled = false;
+
+    if(selected.value==="true") {
+        score++;
+        feedback.style.color = "green";
+        feedback.textContent = "✅ Bonne réponse !";
+    } else {
+        feedback.style.color = "red";
+        const good = document.querySelector('input[value="true"]').parentElement.textContent;
+        feedback.innerHTML = `❌ Mauvaise réponse.<br>✔️ ${good}`;
+    }
+}
+
+function nextQuestion() {
+    index++;
+    if(index < questions.length) {
+        loadQuestion();
+    } else {
+        const percent = Math.round((score/questions.length)*100);
+        let msg = percent >= 50 ? "🎉 Félicitations, vous avez réussi !" : "❌ Tu es une grosse merde, retente ta chance, bouffon !";
+        document.getElementById("quiz-box").innerHTML =
+        `<h2>Résultat final</h2>
+         <p>Score : <strong>${score} / ${questions.length}</strong></p>
+         <p>Pourcentage : <strong>${percent}%</strong></p>
+         <p>${msg}</p>`;
+    }
+}
+
+checkBtn.addEventListener("click", checkAnswer);
+nextBtn.addEventListener("click", nextQuestion);
+
+// ======= NOTES / RAPPELS =======
+const notesTopics = [
+{
+  title: "BIOS et Power-On Self Test (POST)",
+  content: `
+BIOS (Basic Input/Output System) :
+- Firmware stocké sur la carte mère
+- Initialise le matériel au démarrage
+- Fournit une interface basique entre le matériel et le système
+
+Processus de démarrage MBR :
+1. Power-On Self Test (POST) :
+   - Vérifie le fonctionnement du CPU, RAM, périphériques
+   - Signale les erreurs éventuelles par bips ou codes
+2. Le BIOS lit le Master Boot Record (MBR) du disque
+3. Charge le bootloader et transfère l’exécution
+`
+},
+
+{
+  title: "Master Boot Record (MBR) et bootloader",
+  content: `
+- MBR : premier secteur du disque, 512 octets
+- Contient :
+  - Code du bootloader
+  - Table des partitions (partition table)
+- Disque dur structuré en :
+  - Cylindres (cylinders)
+  - Têtes (heads)
+  - Secteurs (sectors)
+- Bootloader :
+  - Programme minimal chargé par le BIOS
+  - Charge le système d’exploitation dans la mémoire
+- Limites :
+  - 4 partitions primaires maximum
+  - 3 primaires + 1 étendue
+`
+},
+
+{
+  title: "Structure du disque et adressage",
+  content: `
+Adresses physiques :
+- Cylindre, tête, secteur (CHS)
+- Adressage utilisé par MBR
+
+Adresses logiques :
+- Bloc logique (LBA)
+- Facilite le partitionnement et la compatibilité moderne
+
+Partitionnement :
+- Primary partition : partition principale, démarrable
+- Extended partition : contient des partitions logiques supplémentaires
+- MBR limité, pas de journalisation ni multiboot avancé
+`
+},
+
+{
+  title: "Inconvénients du MBR",
+  content: `
+- Stocke toutes les informations de boot et partitions en un seul endroit
+- Pas de journalisation ni mécanisme de récupération
+- Support multiboot limité
+- Pas de support natif pour périphériques réseau ou disques >2To
+`
+},
+
+{
+  title: "Notions de base du boot",
+  content: `
+1. Mini-OS ou bootloader initial
+2. Chargement du système d’exploitation (OS)
+3. Initialisation du HAL (Hardware Abstraction Layer)
+4. Chargement des drivers et mode graphique
+5. Transfert vers le gestionnaire de session (Session Manager sur Windows)
+`
+},
+
+{
+  title: "UEFI (Unified Extensible Firmware Interface)",
+  content: `
+- Remplace progressivement le BIOS
+- Permet démarrage plus rapide, sécurisé et flexible
+- Secure Boot : vérifie signature des OS et bootloaders
+- Modes :
+  - Legacy : compatibilité avec BIOS/MBR
+  - UEFI natif : utilise GPT et firmware moderne
+  - UEFI hybride : CMS pour compatibilité
+- Partition ESP (EFI System Partition) : contient bootloaders et drivers UEFI
+`
+},
+
+{
+  title: "GPT (GUID Partition Table)",
+  content: `
+- Structure moderne pour les disques >2 To
+- Utilisé par UEFI
+- Partitionne le disque en blocs avec GUID unique
+- Avantages :
+  - Nombre de partitions illimitées (selon OS)
+  - Redondance des tables de partition
+  - Support multiboot et récupération
+- Partition typiques Windows :
+  - ESP : EFI System Partition
+  - MSR : Microsoft Reserved
+  - Windows OS
+  - Windows Recovery
+- Linux :
+  - ESP, root, swap
+- Mac :
+  - ESP, Macintosh HD, Recovery
+`
+},
+
+{
+  title: "Secure Boot et TPM",
+  content: `
+Secure Boot :
+- Vérifie signature des OS et bootloaders
+- Empêche l’exécution de code non autorisé au démarrage
+
+TPM (Trusted Platform Module) :
+- Puce dédiée à la sécurité
+- Stocke clés cryptographiques, mesures d’intégrité
+- Utilisé par BitLocker et Secure Boot pour protéger le système
+`
+},
+
+{
+  title: "HAL (Hardware Abstraction Layer)",
+  content: `
+- Fournit une interface uniforme entre le noyau Windows et le matériel
+- Permet portabilité entre différentes architectures matérielles
+- Facilite le développement de drivers :
+  - Drivers applicatifs
+  - Drivers noyau
+- Assure la communication entre le kernel et les composants matériels
+- Indispensable pour les fonctionnalités critiques et la stabilité
+`
+},
+
+{
+  title: "Résumé boot et architecture moderne",
+  content: `
+- BIOS / POST → vérification matériel → MBR / GPT
+- Bootloader → chargement OS → HAL
+- Session Manager / Login → utilisateur et sécurité
+- Partitionnement : MBR (limité) vs GPT (moderne)
+- UEFI : modes Legacy, hybride, natif
+- Secure Boot et TPM assurent intégrité et sécurité
+- HAL : abstraction matérielle et interface drivers
+
+Cette vue d’ensemble couvre le processus de démarrage, la sécurité, le partitionnement et la portabilité sur Windows, Linux et Mac.
+`
+}
+
+];
+
+const notesButtons = document.getElementById("notes-buttons");
+const notesContent = document.getElementById("notes-content");
+
+notesTopics.forEach(topic => {
+    const btn = document.createElement("button");
+    btn.textContent = topic.title;
+    btn.onclick = () => notesContent.innerHTML = topic.content;
+    notesButtons.appendChild(btn);
+});
+
+loadQuestion();
+</script>
+
+</body>
+</html>

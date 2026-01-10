@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Windows – Sécurité Windows : AT, GPO, AD</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+h1 { text-align: center; }
+
+#quiz-box {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+#notes-content {
+    white-space: pre-wrap;
+}
+
+.answer { margin: 8px 0; }
+button { margin: 6px 5px 0 0; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+
+#progress { text-align: center; margin-bottom: 10px; font-weight: bold; }
+.feedback { margin-top: 10px; font-weight: bold; }
+
+/* ===== NOTES ===== */
+#notes-box {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+}
+
+#notes-buttons button {
+    background: #e3e7ed;
+    border: none;
+    border-radius: 6px;
+}
+
+#notes-content {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f9fafc;
+    border-left: 4px solid #4a90e2;
+    min-height: 80px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📝 Quiz Windows – Sécurité Windows : AT, GPO, AD</h1>
+
+<div id="quiz-box">
+
+    <div id="progress"></div>
+    <div id="question"></div>
+    <div id="answers"></div>
+
+    <button id="checkBtn">✅ Vérifier</button>
+    <button id="nextBtn" disabled>➡️ Suivant</button>
+
+    <div id="feedback" class="feedback"></div>
+
+    <!-- ===== NOTES ===== -->
+    <div id="notes-box">
+        <h3>📘 Notes & rappels</h3>
+        <div id="notes-buttons"></div>
+        <div id="notes-content">Clique sur un sujet pour afficher l’explication.</div>
+    </div>
+
+</div>
+
+<script>
+// ======= QUESTIONS (TON CODE INTACT) =======
+const questions = [
+  {q:"Qu’est-ce qu’un objet sécurisé (securable object) ?", a:{A:"Un objet chiffré",B:"Un objet appartenant à l’administrateur",C:"Un objet sur lequel on peut appliquer des permissions",D:"Un objet réseau uniquement"}, c:"C"},
+  {q:"Quel élément définit qui peut faire quoi sur un objet ?", a:{A:"SID du propriétaire",B:"SACL",C:"DACL",D:"Jeton d’accès"}, c:"C"},
+  {q:"À quoi sert la SACL ?", a:{A:"Autoriser l’accès",B:"Refuser l’accès",C:"Définir l’audit de sécurité",D:"Hériter des permissions"}, c:"C"},
+  {q:"Que signifie le terme “discrétionnaire” dans DACL ?", a:{A:"Les permissions sont automatiques",B:"Les permissions sont définies par le propriétaire",C:"Les permissions sont imposées par Windows",D:"Les permissions sont temporaires"}, c:"B"},
+  {q:"Quel élément du système crée le jeton d’accès primaire ?", a:{A:"winlogon.exe",B:"explorer.exe",C:"lsass.exe",D:"services.exe"}, c:"C"},
+  
+  {q:"Quel élément identifie “qui” dans le jeton d’accès ?", a:{A:"Le GUID",B:"Le SID",C:"Le DN",D:"Le nom du compte"}, c:"B"},
+  {q:"Quand un processus crée un autre processus, le jeton :", a:{A:"Est recréé",B:"Est supprimé",C:"Est hérité",D:"Est converti en jeton d’emprunt"}, c:"C"},
+  {q:"À quoi sert un jeton d’emprunt (impersonation token) ?", a:{A:"Créer une session utilisateur",B:"Modifier la SAM",C:"Agir temporairement au nom d’un utilisateur",D:"Gérer les GPO"}, c:"C"},
+  {q:"Quel service utilise fréquemment l’impersonation ?", a:{A:"DNS",B:"SMB",C:"DHCP",D:"UAC"}, c:"B"},
+  {q:"Quel niveau d’intégrité correspond à un utilisateur standard ?", a:{A:"Low",B:"Medium",C:"High",D:"System"}, c:"B"},
+  
+  {q:"Un processus peut modifier un objet :", a:{A:"De niveau égal uniquement",B:"De niveau inférieur uniquement",C:"De niveau supérieur",D:"Quel que soit le niveau"}, c:"B"},
+  {q:"Quel privilège est nécessaire pour éteindre le système ?", a:{A:"SeTimeZonePrivilege",B:"SeChangeNotifyPrivilege",C:"SeShutdownPrivilege",D:"SeDebugPrivilege"}, c:"C"},
+  {q:"Quel compte possède les privilèges machine les plus élevés ?", a:{A:"Local Service",B:"Network Service",C:"Administrateur",D:"SYSTEM"}, c:"D"},
+  {q:"Quel est l’avantage principal des Managed Service Accounts (MSA) ?", a:{A:"Accès administrateur",B:"Mot de passe qui n’expire jamais",C:"Mot de passe renouvelé automatiquement",D:"Accès interactif"}, c:"C"},
+  {q:"Quel est le rôle de l’UAC ?", a:{A:"Gérer les utilisateurs",B:"Empêcher toute action administrative",C:"Demander confirmation pour actions sensibles",D:"Chiffrer les fichiers système"}, c:"C"},
+  
+  {q:"Quand les GPO ordinateur sont-elles appliquées ?", a:{A:"À l’ouverture de session",B:"Au démarrage",C:"À la fermeture",D:"À l’installation"}, c:"B"},
+  {q:"Quel outil permet de forcer l’application des GPO ?", a:{A:"gpedit.msc",B:"gpmc.msc",C:"gpupdate",D:"rsop.msc"}, c:"C"},
+  {q:"Quel est l’ordre correct d’application des GPO ?", a:{A:"Domaine → Site → OU → Local",B:"Local → Site → Domaine → OU",C:"OU → Domaine → Site → Local",D:"Site → Local → OU → Domaine"}, c:"B"},
+  {q:"Quel service fournit l’authentification dans AD ?", a:{A:"NTLM uniquement",B:"Kerberos",C:"LDAP",D:"DNS"}, c:"B"},
+  {q:"Quel est le rôle du catalogue global (GC) ?", a:{A:"Stocker tous les mots de passe",B:"Répliquer les GPO",C:"Fournir une vue partielle de tous les objets",D:"Gérer les OU"}, c:"C"},
+  
+  {q:"Une OU permet :", a:{A:"Créer un nouveau domaine",B:"Gérer la réplication",C:"Déléguer des permissions et appliquer des GPO",D:"Modifier le schéma"}, c:"C"},
+  {q:"Combien de schémas existe-t-il dans une forêt ?", a:{A:"Un par domaine",B:"Un par DC",C:"Un seul",D:"Deux"}, c:"C"},
+  {q:"Quel rôle FSMO gère l’attribution des RID ?", a:{A:"PDC Emulator",B:"Schema Master",C:"RID Master",D:"Infrastructure Master"}, c:"C"},
+  {q:"Quel rôle FSMO gère la synchronisation horaire ?", a:{A:"Schema Master",B:"RID Master",C:"Infrastructure Master",D:"PDC Emulator"}, c:"D"},
+  {q:"Combien de rôles FSMO existent au total ?", a:{A:"3",B:"4",C:"5",D:"6"}, c:"C"}
+];
+// ======= MÉLANGE =======
+function shuffle(array) {
+    for (let i=array.length-1; i>0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+shuffle(questions);
+
+let index = 0;
+let score = 0;
+let answered = false;
+
+const qDiv = document.getElementById("question");
+const aDiv = document.getElementById("answers");
+const progress = document.getElementById("progress");
+const feedback = document.getElementById("feedback");
+const checkBtn = document.getElementById("checkBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+function loadQuestion() {
+    answered = false;
+    feedback.textContent = "";
+    nextBtn.disabled = true;
+
+    const q = questions[index];
+    progress.textContent = `Question ${index + 1} / ${questions.length}`;
+    qDiv.innerHTML = `<h3>${q.q}</h3>`;
+    aDiv.innerHTML = "";
+
+    let answers = Object.entries(q.a).map(([key,text])=>({
+        key,
+        text,
+        correct: key===q.c
+    }));
+    shuffle(answers);
+
+    answers.forEach(ans=>{
+        aDiv.innerHTML += `
+        <div class="answer">
+            <label>
+                <input type="radio" name="answer" value="${ans.correct}">
+                ${ans.text}
+            </label>
+        </div>`;
+    });
+}
+
+function checkAnswer() {
+    if(answered) return;
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if(!selected) return alert("⚠️ Sélectionne une réponse");
+
+    answered = true;
+    nextBtn.disabled = false;
+
+    if(selected.value==="true") {
+        score++;
+        feedback.style.color = "green";
+        feedback.textContent = "✅ Bonne réponse !";
+    } else {
+        feedback.style.color = "red";
+        const good = document.querySelector('input[value="true"]').parentElement.textContent;
+        feedback.innerHTML = `❌ Mauvaise réponse.<br>✔️ ${good}`;
+    }
+}
+
+function nextQuestion() {
+    index++;
+    if(index < questions.length) {
+        loadQuestion();
+    } else {
+        const percent = Math.round((score/questions.length)*100);
+        let msg = percent >= 50 ? "🎉 Félicitations, vous avez réussi !" : "❌ Tu es une grosse merde, retente ta chance, bouffon !";
+        document.getElementById("quiz-box").innerHTML =
+        `<h2>Résultat final</h2>
+         <p>Score : <strong>${score} / ${questions.length}</strong></p>
+         <p>Pourcentage : <strong>${percent}%</strong></p>
+         <p>${msg}</p>`;
+    }
+}
+
+checkBtn.addEventListener("click", checkAnswer);
+nextBtn.addEventListener("click", nextQuestion);
+
+// ======= NOTES / RAPPELS =======
+const notesTopics = [
+{
+  title: "Sécurité Windows – Objets, jetons et GPO",
+  content: `
+Objets de sécurité :
+- Types : fichiers, registres, objets noyaux, services, objets COM/ActiveX, imprimantes, dossiers partagés
+- Chaque objet a un Security Descriptor (SD) :
+  - SID propriétaire : identifie le propriétaire
+  - SID principal : identifie l'utilisateur ou groupe actif
+  - DACL (Discretionary ACL) : définit qui peut faire quoi
+  - SACL (System ACL) : définit la journalisation des accès
+- DACL : contrôle les permissions accordées/refusées
+- SACL : contrôle l’audit des actions sur l’objet
+
+Jetons d’accès :
+- Création lors de l’authentification Windows (WinLogon.exe, Lsass.exe, LogonUI.exe, AuthUI.dll)
+- Jetons primaires (primary token) : attachés aux processus créés par l’utilisateur
+- Jetons d’emprunt (impersonation token) : utilisés par les services pour agir au nom d’un utilisateur
+- Transmission : processus parent → processus enfant via CreateProcess
+- Restrictions automatiques appliquées en fin de session
+- Privilèges : SE Assign Primary Token, SE Impersonate Privilege
+- Exemples : Explorer.exe (primary token), serveur SMB (impersonation token)
+
+SID et niveaux d’intégrité :
+- Chaque processus a un SID lié à son niveau :
+  - Low (ex: navigateur isolé) : S-1-16-4096
+  - Medium (utilisateur standard) : S-1-16-8192
+  - Medium Plus (UIAccess) : S-1-16-8448
+  - High (UAC élevé, admin) : S-1-16-12288
+  - System Service : S-1-16-13824
+  - Protected Process (antivirus/DRM) : S-1-16-20480
+  - Highly Protected Process : S-1-16-28672
+- Un processus ne peut pas modifier un objet avec un niveau supérieur au sien
+
+Comptes et services sécurisés :
+- Comptes systèmes : LocalSystem, NetworkService, LocalService
+- Comptes MSA (Managed Service Account) : mot de passe géré automatiquement, un compte par machine mais plusieurs services possibles
+- Créateur/propriétaire : droit de modifier ACL d’un objet
+- UAC : User Account Control, contrôle l’élévation des privilèges
+
+GPO (Group Policy Objects) :
+- Ensemble de règles pour config utilisateur et ordinateur
+- Gestion centralisée via GPEDIT / GPMC
+- Application automatique à :
+  - Démarrage de l’ordinateur
+  - Ouverture de session
+  - Mise à jour via GPUPDATE
+- Types :
+  - Local GPO
+  - Domain GPO
+  - Starter GPO
+- Ordre d’application :
+  - Local → Site → Domaine → OU
+`
+},
+
+{
+  title: "PATH, SID, RID et profils techniques",
+  content: `
+PATH Windows :
+- Windows recherche les exécutables dans les dossiers listés dans la variable d'environnement PATH
+- Extensions prises en compte via PATHEXT : .exe, .bat, .cmd, .com, .vbs, .js, .msc
+- Dans le répertoire courant uniquement si inclus dans PATH
+- Linux : PATH similaire mais sensible à la casse et sans PATHEXT
+
+SID (Security Identifier) :
+- Identifie de manière unique un utilisateur, groupe ou processus
+- Commence toujours par S-1
+- Structure :
+  - Autorité d’authentification (ex: NT Authority = 5)
+  - Identificateurs relatifs (RID) pour les objets locaux ou domaines
+- Exemples de SID :
+  - S-1-5-21-…-500 : Administrateur local
+  - S-1-5-21-…-501 : Guest
+  - S-1-5-21-…-503 : DefaultAccount (compte restreint pour services UWP)
+  - S-1-5-21-…-504 : WDAGUtilityAccount (Windows Defender Application Guard)
+- Chaque SID indique le contexte de sécurité d’un utilisateur ou service
+
+RID (Relative Identifier) :
+- Identifiant unique relatif à un SID de domaine ou machine
+- Utilisé pour différencier les comptes d’un même domaine
+- Exemples :
+  - 500 : Administrateur
+  - 501 : Guest
+  - 503 : DefaultAccount
+  - 504 : WDAGUtilityAccount
+- Les RID spéciaux servent aux services et comptes système
+
+Profils techniques et accès :
+- WDAGUtilityAccount : contexte isolé pour conteneurs/protection
+- TrustedInstaller : sous-autorité spéciale, contrôle certains fichiers système
+- GUIDES : dossiers hyper-v, Guarded Host pour virtualisation et sécurité
+- Privilèges élevés requis pour certaines opérations système (arrêt, redémarrage)
+- Comptes systèmes gérés : LocalSystem, NetworkService, LocalService, Managed Service Accounts (MSA)
+
+Concepts clés :
+- Un processus ne peut pas modifier un objet ayant un niveau d’intégrité supérieur au sien
+- Jetons d’accès et SID définissent droits et restrictions
+- UAC contrôle l’élévation des droits pour les utilisateurs standards
+- Gestion centralisée via GPO pour appliquer les règles de sécurité à utilisateurs et machines
+`
+},
+
+{
+ title: "Objets de sécurité Windows",
+ content: `
+Définition :
+Un objet de sécurité est toute ressource Windows qui peut être protégée par un contrôle d'accès. Cela inclut fichiers, registres, services, etc.
+
+Types d'objets :
+- Fichiers et dossiers : ex. C:\\Windows
+- Registres : ex. HKEY_LOCAL_MACHINE
+- Objets noyau : Events, Mutex, Semaphore
+- Services Windows : ex. WinDefend
+- Objets actifs et directories
+- Objets COM / DCOM
+- Imprimantes partagées
+- Description : chaque objet possède des droits et peut être audité
+`
+},
+
+{
+ title: "Security Descriptor (SD)",
+ content: `
+Description :
+Chaque objet de sécurité possède un Security Descriptor qui définit les permissions et le contrôle d'accès.
+
+Éléments :
+- Owner SID : identifie le propriétaire de l'objet
+- Primary Group SID : identifie le groupe principal
+- DACL (Discretionary ACL) : définit qui peut faire quoi sur l'objet
+- SACL (System ACL) : définit les audits et journalisation de sécurité
+
+Fonction :
+- Le DACL contrôle l'accès discrétionnaire
+- Le SACL contrôle l'enregistrement et le suivi des accès pour la sécurité
+`
+},
+
+{
+ title: "Jetons d'accès et authentification",
+ content: `
+Définition :
+Un jeton d'accès contient l'identité et les droits d'un processus ou d'un utilisateur. Il est créé lors de l'authentification.
+
+Création :
+- Windows Logon : WinLogon.exe → LogonUI.exe → AuthUI.dll
+- LSASS.exe crée les jetons primaires pour les processus utilisateur
+
+Types de jetons :
+- Jetons primaires : utilisés par les processus pour exécuter des actions
+- Jetons d'emprunt / impersonation : utilisés par les services pour agir temporairement au nom d'un utilisateur
+
+Transmission et héritage :
+- Processus parent → Processus enfant via CreateProcess()
+- Héritage des privilèges et restrictions
+- Processus spéciaux pouvant transmettre des jetons : TaskScheduler, WinLogon, Svchost
+
+Restrictions :
+- Les jetons sont automatiquement restreints à la fermeture de la session
+`
+},
+
+{
+ title: "Niveaux d'intégrité et SID",
+ content: `
+SID et intégrité :
+Chaque jeton contient un SID et un niveau d'intégrité. Le niveau d'intégrité détermine ce qu'un processus peut modifier.
+
+Exemples :
+- Low (S-1-16-4096) : applications isolées, navigateurs
+- Medium (S-1-16-8192) : niveau par défaut des utilisateurs
+- Medium Plus (S-1-16-8448) : UIAccess
+- High (S-1-16-12288) : processus administrateur élevé (UAC)
+- System (S-1-16-16384) : services système OS
+- Protected (S-1-16-20480) : antivirus, DRM
+- Secure (S-1-16-28672) : processus hautement protégé
+
+Règle :
+Un processus ne peut pas modifier un objet ayant un niveau d'intégrité supérieur au sien
+`
+},
+
+{
+ title: "Comptes et services",
+ content: `
+Comptes systèmes :
+- LocalSystem : services système complet
+- NetworkService : services réseau avec droits limités
+- LocalService : services locaux avec droits réduits
+
+Comptes gérés :
+- Managed Service Accounts (MSA) : service isolé avec gestion automatique des mots de passe
+
+Créateur, propriétaire et droits :
+- Créateur : droit de modifier ACL sur un objet qu'il a créé
+- Propriétaire : peut modifier ACL de l'objet
+- Avec SID : permissions associées automatiquement au propriétaire
+
+UAC (User Account Control) :
+- Sur élévation de privilèges
+- Assure que les processus sensibles sont exécutés avec droits appropriés
+`
+},
+
+{
+ title: "GPO (Group Policy Object)",
+ content: `
+Définition :
+Ensemble de règles paramétrées pour configurer ordinateurs et comptes utilisateurs.
+
+Types de GPO :
+- Local GPO
+- Domain GPO
+- Starter GPO
+
+Application :
+- Appliqué au démarrage de l'ordinateur, ouverture de session utilisateur, ou via GPUPDATE
+- Ordre d'application : Local → Site → Domaine → OU
+- Permet configuration homogène et centralisée
+`
+},
+
+{
+  title: "Active Directory (AD)",
+  content: `
+Définition :
+Active Directory est un service d'annuaire centralisé qui permet de gérer les utilisateurs, ordinateurs, groupes et ressources dans un domaine Windows. Il fournit authentification, autorisation et administration centralisée.
+
+Fonctionnalités principales :
+- Gestion centralisée des comptes utilisateurs et ordinateurs
+- Authentification et autorisation des utilisateurs
+- Application de politiques de sécurité
+- Organisation en domaines, arbres et forêts
+`
+},
+
+{
+  title: "Objet Active Directory",
+  content: `
+Définition :
+Un objet AD est une entité stockée dans l'annuaire (ex : utilisateur, ordinateur, groupe, OU).
+
+Types d'objets :
+- User : utilisateur
+- Computer : ordinateur
+- Group : groupe
+- OrganizationalUnit (OU) : conteneur logique
+- Printer : imprimante
+- Service : service Windows
+
+Attributs :
+Chaque objet possède une classe (type) et des attributs (ex : nom, SID, groupe, mot de passe haché)
+`
+},
+
+{
+  title: "Domaine AD",
+  content: `
+Définition :
+Un domaine est une frontière de sécurité qui regroupe des objets (utilisateurs, ordinateurs) et gère l'authentification.
+
+Fonctionnalités :
+- Comptes centralisés
+- Authentification unique (SSO)
+- Application de GPO centralisées
+`
+},
+
+{
+  title: "Forêt, Arbre et Domaine",
+  content: `
+Forêt :
+- Niveau le plus haut
+- Contient un ou plusieurs domaines
+- Partage schéma, configuration, confiance
+
+Arbre :
+- Ensemble de domaines partageant un namespace DNS commun
+
+Domaine :
+- Contient utilisateurs, groupes, ordinateurs
+- Unité de gestion principale
+`
+},
+
+{
+  title: "DNS, Global Catalog et RODC",
+  content: `
+DNS Server :
+- Indispensable pour localiser les contrôleurs de domaine
+- Permet authentification AD
+
+Global Catalog :
+- Contient une copie partielle de tous les objets de la forêt
+- Permet recherches et authentifications inter-domaines
+
+Read-Only Domain Controller (RODC) :
+- Contrôleur de domaine en lecture seule
+- Utilisé pour sites distants ou peu sécurisés
+- Limite l'impact d'un vol de serveur
+`
+},
+
+{
+  title: "Unité d'Organisation (OU)",
+  content: `
+Définition :
+Conteneur logique pour organiser les objets AD.
+
+Fonctionnalités :
+- Organisation des utilisateurs et ordinateurs
+- Application de GPO
+- Délégation d'administration
+`
+},
+
+{
+  title: "GPO (Group Policy Object)",
+  content: `
+Définition :
+Ensemble de règles paramétrées pour configurer ordinateurs et comptes utilisateurs.
+
+Types de GPO :
+- Local GPO
+- Domain GPO
+- Starter GPO
+
+Application :
+- Appliqué au démarrage de l'ordinateur, ouverture de session utilisateur, ou via GPUPDATE
+- Ordre d'application : Local → Site → Domaine → OU
+- Permet configuration homogène et centralisée
+`
+},
+
+{
+  title: "Partitions Active Directory",
+  content: `
+Schéma :
+- Définit les types d'objets et attributs
+- Partageable dans toute la forêt
+
+Configuration :
+- Informations sur la forêt, sites et réplication
+
+Domaine :
+- Contient utilisateurs, groupes et ordinateurs
+
+Application :
+- Utilisée par certains services (ex : DNS)
+`
+},
+
+{
+  title: "FSMO (Flexible Single Master Operations)",
+  content: `
+Rôles principaux :
+- Schema Master
+- Domain Naming Master
+- RID Master
+- PDC Emulator
+- Infrastructure Master
+
+Fonction :
+- Certains rôles sont uniques dans la forêt ou le domaine
+- Assurent intégrité et synchronisation de l'AD
+`
+},
+
+{
+  title: "Identification d'un objet AD",
+  content: `
+Méthodes :
+- DN (Distinguished Name) : chemin LDAP complet
+- GUID : identifiant unique et immuable
+- SID : identifiant de sécurité
+`
+}
+
+];
+
+const notesButtons = document.getElementById("notes-buttons");
+const notesContent = document.getElementById("notes-content");
+
+notesTopics.forEach(topic => {
+    const btn = document.createElement("button");
+    btn.textContent = topic.title;
+    btn.onclick = () => notesContent.innerHTML = topic.content;
+    notesButtons.appendChild(btn);
+});
+
+loadQuestion();
+</script>
+
+</body>
+</html>

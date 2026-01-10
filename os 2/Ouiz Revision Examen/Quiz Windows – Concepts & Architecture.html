@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Windows – Concepts & Architecture</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+h1 { text-align: center; }
+
+#quiz-box {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+#notes-content {
+    white-space: pre-wrap;
+}
+
+.answer { margin: 8px 0; }
+button { margin: 6px 5px 0 0; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+
+#progress { text-align: center; margin-bottom: 10px; font-weight: bold; }
+.feedback { margin-top: 10px; font-weight: bold; }
+
+/* ===== NOTES ===== */
+#notes-box {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+}
+
+#notes-buttons button {
+    background: #e3e7ed;
+    border: none;
+    border-radius: 6px;
+}
+
+#notes-content {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f9fafc;
+    border-left: 4px solid #4a90e2;
+    min-height: 80px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📝 Quiz Windows – Concepts & Architecture</h1>
+
+<div id="quiz-box">
+
+    <div id="progress"></div>
+    <div id="question"></div>
+    <div id="answers"></div>
+
+    <button id="checkBtn">✅ Vérifier</button>
+    <button id="nextBtn" disabled>➡️ Suivant</button>
+
+    <div id="feedback" class="feedback"></div>
+
+    <!-- ===== NOTES ===== -->
+    <div id="notes-box">
+        <h3>📘 Notes & rappels</h3>
+        <div id="notes-buttons"></div>
+        <div id="notes-content">Clique sur un sujet pour afficher l’explication.</div>
+    </div>
+
+</div>
+
+<script>
+// ======= QUESTIONS (TON CODE INTACT) =======
+const questions = [
+{ q:"Quels sont les objectifs principaux du cahier des charges de Windows ?", a:{A:"Fiabilité, Performance, Compatibilité, Évolutivité, Portabilité, Sécurité",B:"Compatibilité, Sécurité, Performance",C:"Rapidité, Simplicité, Gratuité",D:"Virtualisation uniquement"}, c:"A"},
+{ q:"Le mode noyau (kernel mode) est :", a:{A:"réservé aux fonctions vitales du système",B:"réservé aux applications utilisateurs",C:"soumis à un contrôle strict des accès mémoire",D:"identique au mode utilisateur"}, c:"A"},
+{ q:"Le mode utilisateur est :", a:{A:"utilisé par les applications et certains services Windows",B:"réservé aux pilotes matériels",C:"réservé aux fonctions vitales du système",D:"sans contrôle d’accès mémoire"}, c:"A"},
+{ q:"Sous Windows NT, quels rings sont utilisés ?", a:{A:"Ring 0 pour le mode noyau et Ring 3 pour Le mode utilisateur",B:"Ring 0, 1, 2 pour Le mode utilisateur  et 3 pour le mode noyau",C:"Ring 1 pour le mode noyau et Ring et Ring 2 pour Le mode utilisateur",D:"Ring 3 uniquement"}, c:"A"},
+{ q:"Le sous-système WOW64 permet :", a:{A:"exécuter du 32 bits sur OS 64 bits",B:"exécuter du 64 bits sur OS 32 bits",C:"exécuter du DOS direct",D:"exécuter du 16 bits"}, c:"A"},
+
+{ q:"Combien de rings de protection Windows utilise-t-il ?", a:{A:"2",B:"3",C:"5",D:"4"}, c:"A"},
+{ q:"Qu’est-ce qu’un sous-système Windows ?", a:{A:"Une couche qui permet aux applications d’accéder aux services du noyau via des API",B:"Un pilote matériel",C:"Un service réseau",D:"Un composant graphique"}, c:"A"},
+{ q:"Où sont stockées les applications 32 bits ?", a:{A:"C:\\Program Files (x86)",B:"C:\\Windows\\System32",C:"C:\\Programs",D:"C:\\Windows\\Sys32"}, c:"A"},
+{ q:"À quoi sert le sous-système WOW (Windows On Windows)", a:{A:"À exécuter des applications plus anciennes sur une architecture plus récente",B:"Gérer directement le matériel",C:"À exécuter des applications 64 bits sur un OS 32 bits",D:"À virtualiser le système"}, c:"A"},
+{ q:"Quel composant est utilisé pour exécuter les anciennes applications DOS et Win16 ?", a:{A:"NTVDM",B:"HAL",C:"RPC",D:"UEFI"}, c:"A"},
+
+{ q:"Différence mode utilisateur / noyau ?", a:{A:"Utilisateur contrôlé, noyau accès direct",B:"Identiques",C:"Noyau réservé utilisateurs",D:"Utilisateur gère matériel"}, c:"A"},
+{ q:"Rôle d’une API Windows ?", a:{A:"Accès aux services système",B:"Remplacer le noyau",C:"Gérer matériel",D:"Sécurité uniquement"}, c:"A"},
+{ q:"Qu’est-ce qu’une DLL ?", a:{A:"Librairie dynamique",B:"Pilote",C:"Processus",D:"Config"}, c:"A"},
+{ q:"Différence statique / dynamique ?", a:{A:"Dynamique partagée",B:"Statique partagée",C:"Identiques",D:"Dynamique plus rapide"}, c:"A"},
+{ q:"Qu’est-ce qu’un objet Windows ?", a:{A:"Ressource avec attributs/méthodes",B:"Fichier",C:"Périphérique",D:"API"}, c:"A"},
+
+{ q:"À quoi sert un handle ?", a:{A:"Identifier objet + droits",B:"Identifier utilisateur",C:"Gérer threads",D:"Stocker données"}, c:"A"},
+{ q:"Qu’est-ce qu’un thread ?", a:{A:"Plus petite unité d’exécution",B:"Application",C:"Noyau",D:"Fichier"}, c:"A"},
+{ q:"Processus vs thread ?", a:{A:"Processus contient threads",B:"Thread contient processus",C:"Identiques",D:"Processus plus petit"}, c:"A"},
+{ q:"Rôle du Process Manager ?", a:{A:"Créer/gérer processus et threads",B:"Réseau",C:"Sécurité",D:"Disque"}, c:"A"},
+{ q:"Priorité threads multicœur ?", a:{A:"Répartition selon priorité",B:"Un seul thread",C:"Même priorité",D:"Un seul cœur"}, c:"A"},
+
+{ q:"Virtual Memory Manager ?", a:{A:"Mémoire virtuelle/isolation",B:"Utilisateurs",C:"Réseau",D:"GUI"}, c:"A"},
+{ q:"OS modulaire Windows NT ?", a:{A:"Évolutif performant",B:"Recompilation totale",C:"Faible sécurité",D:"Monolithique"}, c:"A"},
+{ q:"Rôle de lsass.exe ?", a:{A:"Authentification/sécurité",B:"Pilotes",C:"Mémoire",D:"Affichage"}, c:"A"},
+{ q:"Security Reference Monitor ?", a:{A:"Sécurité locale objets",B:"Réseau",C:"Threads",D:"Cache disque"}, c:"A"},
+{ q:"Rôle du I/O Manager ?", a:{A:"Coordination pilotes",B:"Utilisateurs",C:"Mémoire virtuelle",D:"Auth"}, c:"A"},
+
+{ q:"À quoi sert la HAL ?", a:{A:"Indépendance matérielle",B:"Interface",C:"Utilisateurs",D:"16 bits"}, c:"A"},
+{ q:"Pourquoi Windows est-il considéré comme portable ?", a:{A:"Grâce à la HAL et à son architecture modulaire",B:"Grâce au BIOS",C:"Grâce aux DLL",D:"Grâce à son interface graphique"}, c:"A"},
+{ q:"Différence LPC / RPC ?", a:{A:"LPC local, RPC distant",B:"LPC distant, RPC local",C:"Identiques",D:"LPC remplace RPC"}, c:"A"},
+{ q:"Pourquoi pas accès direct matériel ?", a:{A:"Stabilité et sécurité",B:"Ralentir",C:"Simplifier",D:"Limiter perf"}, c:"A"},
+{ q:"Le mode préemptif signifie que :", a:{A:"l’OS peut interrompre une application à tout moment",B:"les threads ont tous la même priorité",C:"une application décide quand elle s’arrête",D:" une seule application peut s’exécuter"}, c:"A"},
+
+{ q:"Le mode coopératif signifie que :", a:{A:"une application doit libérer elle-même le processeur",B:"l’OS contrôle totalement l’exécution",C:"les applications se partagent le CPU automatiquement",D:"il n’y a qu’un seul thread"}, c:"A"},
+{ q:"Où se trouvent les applications 64 bits sous Windows 64 bits ?", a:{A:"C:\Program Files",B:"C:\Windows\SysWOW64",C:"C:\Program Files (x86)",D:"C:\Windows\System"}, c:"A"},
+{ q:"Un avantage principal des DLL est :", a:{A:"partage de code entre applications",B:"absence de gestion de version",C:"fichiers plus gros",D:" exécution plus lente"}, c:"A"},
+{ q:"Le LPC sert à", a:{A:"la communication locale entre threads",B:"la gestion du stockage",C:"la communication Internet",D:"la communication réseau"}, c:"A"},
+{ q:"Le RPC permet", a:{A:"une communication client/serveur distante",B:"une communication locale uniquement",C:"la gestion des fichiers",D:"l’authentification"}, c:"A"},
+
+];
+
+// ======= MÉLANGE =======
+function shuffle(array) {
+    for (let i=array.length-1; i>0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+shuffle(questions);
+
+let index = 0;
+let score = 0;
+let answered = false;
+
+const qDiv = document.getElementById("question");
+const aDiv = document.getElementById("answers");
+const progress = document.getElementById("progress");
+const feedback = document.getElementById("feedback");
+const checkBtn = document.getElementById("checkBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+function loadQuestion() {
+    answered = false;
+    feedback.textContent = "";
+    nextBtn.disabled = true;
+
+    const q = questions[index];
+    progress.textContent = `Question ${index + 1} / ${questions.length}`;
+    qDiv.innerHTML = `<h3>${q.q}</h3>`;
+    aDiv.innerHTML = "";
+
+    let answers = Object.entries(q.a).map(([key,text])=>({
+        key,
+        text,
+        correct: key===q.c
+    }));
+    shuffle(answers);
+
+    answers.forEach(ans=>{
+        aDiv.innerHTML += `
+        <div class="answer">
+            <label>
+                <input type="radio" name="answer" value="${ans.correct}">
+                ${ans.text}
+            </label>
+        </div>`;
+    });
+}
+
+function checkAnswer() {
+    if(answered) return;
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if(!selected) return alert("⚠️ Sélectionne une réponse");
+
+    answered = true;
+    nextBtn.disabled = false;
+
+    if(selected.value==="true") {
+        score++;
+        feedback.style.color = "green";
+        feedback.textContent = "✅ Bonne réponse !";
+    } else {
+        feedback.style.color = "red";
+        const good = document.querySelector('input[value="true"]').parentElement.textContent;
+        feedback.innerHTML = `❌ Mauvaise réponse.<br>✔️ ${good}`;
+    }
+}
+
+function nextQuestion() {
+    index++;
+    if(index < questions.length) {
+        loadQuestion();
+    } else {
+        const percent = Math.round((score/questions.length)*100);
+        let msg = percent >= 50 ? "🎉 Félicitations, vous avez réussi !" : "❌ Tu es une grosse merde, retente ta chance, bouffon !";
+        document.getElementById("quiz-box").innerHTML =
+        `<h2>Résultat final</h2>
+         <p>Score : <strong>${score} / ${questions.length}</strong></p>
+         <p>Pourcentage : <strong>${percent}%</strong></p>
+         <p>${msg}</p>`;
+    }
+}
+
+checkBtn.addEventListener("click", checkAnswer);
+nextBtn.addEventListener("click", nextQuestion);
+
+// ======= NOTES / RAPPELS =======
+const notesTopics = [
+{
+    title: "Mode utilisateur vs Mode noyau",
+    content: `
+    Le mode utilisateur est réservé aux programmes soumis au contrôle du système d'exploitation, 
+    comme tous les programmes des utilisateurs et certains programmes de l'OS. 
+    
+    Le mode noyau est réservé aux fonctions vitales du système d'exploitation uniquement. 
+    Pas de contrôle (vérification accès exclusif à la mémoire).`
+}, 
+
+{
+  title: "Rings de protection (CPU / Windows NT)",
+  content: `
+Les processeurs x86 définissent 4 niveaux de privilèges appelés rings, numérotés de 0 à 3.
+
+Windows possède donc 4 rings théoriques :
+- Ring 0 : niveau de privilège le plus élevé
+- Ring 1
+- Ring 2
+- Ring 3 : niveau de privilège le plus faible
+
+Cependant, Windows NT n’utilise réellement que 2 rings sur les 4 disponibles :
+
+- Ring 0 : utilisé pour le mode noyau (kernel mode)
+  → noyau NT, pilotes, HAL, gestion mémoire, gestion des interruptions
+  → accès direct au matériel et à la mémoire physique
+
+- Ring 3 : utilisé pour le mode utilisateur (user mode)
+  → applications, services Windows, sous-systèmes (Win32, WOW64)
+  → accès strictement contrôlé, aucune interaction directe avec le matériel
+
+Les rings 1 et 2 existent au niveau matériel mais ne sont pas utilisés par Windows.
+Ce choix simplifie l’architecture, améliore la stabilité et renforce la sécurité.
+
+En résumé :
+- Windows possède 4 rings (0 à 3)
+- Windows utilise principalement 2 rings (0 et 3)
+`
+},
+
+{
+  title: "Sous-système Win32",
+  content: `
+Le sous-système Win32 est le principal sous-système de Windows NT.
+Il fournit l’API Win32 utilisée par la majorité des applications Windows.
+
+Rôle du sous-système Win32 :
+- Fournir des API pour la gestion des fenêtres, fichiers, processus, threads, mémoire, etc.
+- Servir d’interface entre les applications utilisateur et le noyau Windows NT
+- Fonctionner en mode utilisateur (ring 3)
+
+Le sous-système Win32 repose sur plusieurs composants, notamment :
+- des DLL (kernel32.dll, user32.dll, gdi32.dll)
+- des services système
+- des mécanismes de communication avec le noyau (syscalls)
+
+C’est le sous-système le plus important et le plus utilisé de Windows.
+`
+},
+
+{
+  title: "Architecture du sous-système Win32",
+  content: `
+Le sous-système Win32 n’est pas un simple composant unique.
+Il s’appuie sur une architecture en couches.
+
+Principaux éléments :
+- Applications Win32 (mode utilisateur)
+- DLL Win32 (kernel32, user32, gdi32)
+- Appels système vers le noyau NT
+- Services du noyau (Process Manager, Memory Manager, I/O Manager)
+
+Le sous-système Win32 agit comme une couche d’abstraction :
+les applications n’accèdent jamais directement au matériel ni au noyau.
+`
+},
+
+{
+  title: "WOW (Windows on Windows)",
+  content: `
+WOW (Windows on Windows) est une couche de compatibilité de Windows.
+Elle permet d’exécuter des applications conçues pour une ancienne architecture.
+
+Exemples :
+- WOW16 : permettait d’exécuter des applications 16 bits sur Windows 32 bits
+- WOW64 : permet d’exécuter des applications 32 bits sur Windows 64 bits
+
+WOW agit comme un convertisseur :
+- redirige les appels API
+- adapte l’accès aux registres, fichiers et bibliothèques
+- isole les applications pour garantir la stabilité du système
+
+WOW fonctionne en mode utilisateur.
+`
+},
+
+{
+  title: "Sous-système POSIX",
+  content: `
+Le sous-système POSIX permettait à Windows NT de respecter partiellement
+la norme POSIX (Portable Operating System Interface).
+
+Objectif :
+- Assurer une compatibilité avec certaines applications Unix
+- Répondre à des exigences institutionnelles et gouvernementales
+
+Caractéristiques :
+- Fournissait une API POSIX
+- Fonctionnait en mode utilisateur
+- Fonctionnalités limitées (pas d’interface graphique)
+
+Le sous-système POSIX a été abandonné dans les versions modernes de Windows.
+`
+},
+
+{
+  title: "Sous-système OS/2",
+  content: `
+Le sous-système OS/2 permettait l’exécution d’applications OS/2 1.x
+sur Windows NT.
+
+Objectif :
+- Assurer une compatibilité avec les applications OS/2 existantes
+- Faciliter la transition depuis OS/2 vers Windows NT
+
+Caractéristiques :
+- Fonctionnait en mode utilisateur
+- Support limité aux applications OS/2 en mode texte
+- Abandonné dans les versions récentes de Windows
+
+Ce sous-système est aujourd’hui obsolète.
+`
+},
+
+{
+  title: "Mode préemptif",
+  content: `
+Dans un système préemptif, le système d’exploitation peut interrompre
+l’exécution d’un processus ou d’un thread à tout moment.
+
+Caractéristiques :
+- Le scheduler décide quel thread s’exécute
+- Basé sur des priorités
+- Améliore la réactivité et la stabilité
+
+Windows NT est un système multitâche préemptif.
+Aucune application ne peut monopoliser le CPU.
+`
+},
+
+{
+  title: "Mode coopératif",
+  content: `
+Dans un système coopératif, les applications doivent volontairement
+rendre la main au système.
+
+Caractéristiques :
+- Pas d’interruption forcée par l’OS
+- Une application bloquée peut figer tout le système
+- Utilisé dans les anciens systèmes (ex : Windows 3.x)
+
+Windows NT n’utilise pas le mode coopératif pour l’exécution des applications modernes.
+`
+},
+
+{
+  title: "API (Application Programming Interface)",
+  content: `
+Une API (Application Programming Interface) est un ensemble de fonctions,
+règles et conventions permettant à une application de communiquer
+avec le système d’exploitation.
+
+Dans Windows :
+- Les applications utilisent l’API Win32
+- L’API sert d’intermédiaire entre l’application et le noyau
+- Elle garantit sécurité, portabilité et stabilité
+
+Les applications n’accèdent jamais directement au matériel :
+elles passent toujours par une API.
+`
+},
+
+{
+  title: "Sous-système Win64",
+  content: `
+Le sous-système Win64 est l’environnement natif d’exécution des applications
+64 bits sur un système Windows 64 bits.
+
+Rôle du sous-système Win64 :
+- Fournir les API 64 bits utilisées par les applications modernes
+- Permettre l’exécution native du code 64 bits
+- Exploiter pleinement les capacités des processeurs 64 bits
+  (adressage mémoire étendu, registres supplémentaires)
+
+Caractéristiques :
+- Fonctionne en mode utilisateur (ring 3)
+- S’appuie sur des DLL 64 bits (kernel32.dll, user32.dll, gdi32.dll)
+- Communique directement avec le noyau Windows NT 64 bits
+- Accès à un espace d’adressage mémoire beaucoup plus large que le 32 bits
+
+Relation avec WOW64 :
+- Les applications 64 bits utilisent directement le sous-système Win64
+- Les applications 32 bits passent obligatoirement par la couche WOW64
+
+En résumé :
+- Win64 = environnement natif 64 bits
+- WOW64 = couche de compatibilité 32 bits sur OS 64 bits
+`
+},
+
+{
+  title: "Librairies : statiques vs dynamiques",
+  content: `
+Une librairie est un ensemble de fonctions déjà compilées
+que les applications peuvent utiliser.
+
+Il existe deux grands types de librairies :
+
+1) Librairies statiques
+- Le code de la librairie est intégré directement dans l’application lors de la compilation
+- Chaque application possède sa propre copie du code
+- Taille de l’exécutable plus grande
+- Pas de dépendance externe à l’exécution
+
+Exemple :
+- Une application V1 compilée avec une librairie statique embarque tout le code nécessaire
+
+2) Librairies dynamiques
+- Le code n’est pas intégré dans l’exécutable
+- Il est chargé dynamiquement en mémoire au moment de l’exécution
+- Plusieurs applications peuvent partager la même librairie
+- Mise à jour possible sans recompiler les applications
+
+Sous Windows, les librairies dynamiques sont appelées DLL.
+`
+},
+
+{
+  title: "DLL (Dynamic Link Library)",
+  content: `
+Une DLL (Dynamic Link Library) est une librairie dynamique utilisée par Windows.
+
+Une DLL contient :
+- du code compilé (fonctions, routines)
+- parfois des ressources (icônes, chaînes de caractères)
+- des points d’entrée accessibles par les applications
+
+Fonctionnement :
+- La DLL n’est pas exécutée seule
+- Elle est chargée en mémoire lorsqu’une application en a besoin
+- Le code est exécuté dans le contexte du processus appelant
+
+Avantages des DLL :
+- Partage du code entre plusieurs applications
+- Réduction de la consommation mémoire
+- Mise à jour simplifiée du système
+
+Exemples de DLL Windows :
+- kernel32.dll : gestion des processus, mémoire
+- user32.dll : interface utilisateur
+- gdi32.dll : affichage graphique
+
+Les DLL sont au cœur de l’API Windows.
+`
+},
+
+{
+  title: "Notion d’objet Windows",
+  content: `
+Dans Windows, un objet est une ressource système abstraite gérée par le noyau.
+
+Un objet peut représenter :
+- un processus
+- un thread
+- un fichier
+- un mutex
+- un événement
+- une clé de registre
+
+Chaque objet possède :
+- des attributs (nom, état, droits)
+- un type
+- une durée de vie contrôlée par le système
+
+Les objets permettent une gestion uniforme et sécurisée des ressources.
+`
+},
+
+{
+  title: "Classe (type) d’objet",
+  content: `
+Une classe (ou type) d’objet définit la structure et le comportement
+d’un objet Windows.
+
+Elle décrit :
+- quels attributs l’objet possède
+- quelles opérations sont autorisées
+- comment l’objet est créé et détruit
+
+Exemples de types d’objets :
+- Process
+- Thread
+- File
+- Event
+- Mutex
+
+Les instances concrètes sont les objets eux-mêmes.
+`
+},
+
+{
+  title: "Handle",
+  content: `
+Un handle est un identifiant opaque fourni à une application
+pour accéder à un objet Windows.
+
+Caractéristiques :
+- Le handle ne contient pas l’objet lui-même
+- Il référence une entrée dans une table de handles
+- Il est associé à des droits d’accès (lecture, écriture, exécution)
+
+Les applications utilisent toujours des handles pour manipuler les objets,
+jamais les objets directement.
+`
+},
+
+{
+  title: "Object Manager",
+  content: `
+L’Object Manager est un composant du noyau Windows NT.
+
+Rôles :
+- Créer, gérer et détruire les objets système
+- Maintenir les tables de handles
+- Appliquer les règles de sécurité sur les objets
+- Gérer le comptage de références
+
+Il garantit que les ressources sont correctement isolées
+et libérées lorsque plus aucun handle n’existe.
+`
+},
+
+{
+  title: "Processus",
+  content: `
+Un processus est une instance d’un programme en cours d’exécution.
+
+Il fournit :
+- un espace mémoire privé
+- des handles vers des objets
+- un contexte de sécurité
+
+Un processus :
+- ne s’exécute pas directement
+- contient au minimum un thread
+
+Il sert de conteneur aux threads.
+`
+},
+
+{
+  title: "Thread",
+  content: `
+Un thread est la plus petite unité d’exécution planifiable par Windows.
+
+Caractéristiques :
+- Il s’exécute à l’intérieur d’un processus
+- Il possède son propre contexte CPU (registres, pile)
+- Il partage la mémoire du processus
+
+C’est le thread, et non le processus, qui est planifié sur le CPU.
+`
+},
+
+{
+  title: "Priorité des threads",
+  content: `
+Chaque thread possède une priorité utilisée par le scheduler.
+
+Fonctionnement :
+- Les threads à priorité élevée sont exécutés en premier
+- Les priorités sont dynamiques
+- Windows ajuste certaines priorités pour améliorer la réactivité
+
+La priorité permet de garantir que les tâches critiques
+sont traitées avant les tâches secondaires.
+`
+},
+
+{
+  title: "Thread au niveau du noyau",
+  content: `
+Sous Windows NT, les threads sont gérés au niveau du noyau.
+
+Cela signifie :
+- Le scheduler du noyau choisit quel thread s’exécute
+- Les changements de contexte sont contrôlés par le noyau
+- Les threads peuvent être interrompus à tout moment
+
+Ce modèle garantit un multitâche efficace et préemptif.
+`
+},
+
+{
+  title: "Cœur physique et cœur logique",
+  content: `
+Un cœur physique est une unité matérielle réelle du processeur
+capable d’exécuter des instructions.
+
+Un cœur logique est une unité d’exécution virtuelle
+créée par des technologies comme l’Hyper-Threading.
+
+Exemple :
+- 1 CPU avec 4 cœurs physiques
+- Hyper-Threading activé → 8 cœurs logiques
+
+Windows planifie les threads sur les cœurs logiques,
+pas directement sur les cœurs physiques.
+`
+},
+
+{
+  title: "Préemption et multitâche au niveau des threads",
+  content: `
+Windows NT est un système multitâche préemptif basé sur les threads.
+
+Cela signifie :
+- Le système peut interrompre un thread en cours
+- Plusieurs threads s’exécutent de manière concurrente
+- Le temps CPU est partagé entre les threads
+
+Ce modèle empêche une application de bloquer le système
+et assure stabilité et réactivité.
+`
+},
+
+{
+  title: "Connexion et sécurité Windows : Vue d'ensemble",
+  content: `
+Cette fiche regroupe les notions essentielles de Windows concernant :
+- la connexion utilisateur
+- la sécurité
+- le logging et suivi des événements
+- l’interaction entre composants système et processus utilisateur
+
+---
+
+Connexion utilisateur
+- WindowsLogon.exe : processus principal gérant le login utilisateur.
+  - Initialise l’environnement utilisateur
+  - Charge LogonUI.dll et AuthUI.dll
+- LogonUI.dll : affiche l’écran de connexion
+- AuthUI.dll : gère la saisie des identifiants et la communication avec LSA
+- Secure32.dll : gère les échanges sécurisés de mots de passe et tickets
+
+---
+
+Sous-système de sécurité (LSA) :
+- LSA (Local Security Authority) :
+  - Valide les identités
+  - Applique les politiques de sécurité
+  - Crée les tokens d’accès pour les utilisateurs et processus
+- Travaille avec :
+  - Msv1_0.dll : authentification locale
+  - Kerberos.dll : authentification réseau (domaines)
+  - SChannel.dll : sécurité des communications
+
+---
+
+Security Reference Monitor (SRM) :
+- Vérifie les droits d’accès aux objets (fichiers, processus, threads, registres)
+- Applique les ACL (Access Control Lists)
+- Fonctionne avec les handles pour sécuriser les accès
+- Garantit isolation et protection des ressources
+
+---
+
+Gestion utilisateur et processus :
+- Chaque utilisateur possède un token d’accès
+- Les processus contiennent un ou plusieurs threads
+- Les threads sont planifiés par le scheduler selon priorité
+- Les managers clés :
+  - Process Manager : création / gestion processus et threads
+  - Virtual Memory Manager : mémoire virtuelle et isolation
+  - Cache Manager : gestion efficace du cache disque / mémoire
+  - File System : abstraction et accès aux fichiers
+  - Service Manager : démarrage et gestion des services système
+
+---
+
+Portabilité et architecture :
+- System32 contient DLL essentielles :
+  - Win32 : API 32 bits
+  - Win64 : API 64 bits
+- WOW64 : compatibilité 32 bits sur OS 64 bits
+- HAL (Hardware Abstraction Layer) : abstraction matérielle
+- L’architecture modulaire permet sécurité, portabilité et multitâche préemptif
+
+---
+
+Logging et audit :
+- Les événements de connexion, échec, et accès aux ressources sont enregistrés
+- L’utilisateur et le système peuvent consulter ces logs pour sécurité et audit
+- Les logs incluent :
+  - authentification réussie / échouée
+  - ouverture / fermeture de sessions
+  - changements de privilèges ou accès aux objets
+
+---
+
+Résumé :
+- Connexion utilisateur : LogonUI → AuthUI → Secure32 → LSA → SRM
+- Processus et threads : isolation et planification
+- Sécurité : handles, ACL, SRM, LSA, DLL spécialisées
+- Portabilité : System32, Win32, Win64, WOW64, HAL
+- Logging : suivi des accès et des événements système
+
+Cette vision globale montre **comment Windows garantit une connexion sécurisée, la gestion des utilisateurs, l’accès aux ressources et le suivi des événements**, tout en restant portable et multitâche.
+`
+},
+
+{
+  title: "Vue globale Windows NT",
+  content: `
+Architecture Windows NT (simplifiée) :
+
+1. Mode utilisateur (ring 3)
+- Applications Win32 / Win64
+- Sous-systèmes : Win32, POSIX, OS/2
+- DLL et API : interface pour les applications
+- LogonUI / AuthUI / Secure32 : authentification utilisateur
+
+2. Mode noyau (ring 0)
+- Noyau (Kernel)
+- HAL : abstraction matérielle
+- Managers :
+  - Process Manager
+  - Virtual Memory Manager
+  - File System
+  - Cache Manager
+  - Security Reference Monitor
+
+3. Sécurité
+- LSA : gestion des identités et politiques
+- SRM : vérification des accès aux objets
+- Handles : accès sécurisé aux ressources
+
+4. Portabilité
+- System32 contient DLL et exécutables essentiels
+- Win32 pour compatibilité 32 bits
+- Win64 pour exécution native 64 bits
+- WOW64 : compatibilité 32 bits sur OS 64 bits
+
+Cette architecture garantit :
+- Sécurité
+- Portabilité
+- Multitâche préemptif
+- Isolation des processus
+`
+}
+
+];
+
+const notesButtons = document.getElementById("notes-buttons");
+const notesContent = document.getElementById("notes-content");
+
+notesTopics.forEach(topic => {
+    const btn = document.createElement("button");
+    btn.textContent = topic.title;
+    btn.onclick = () => notesContent.innerHTML = topic.content;
+    notesButtons.appendChild(btn);
+});
+
+loadQuestion();
+</script>
+
+</body>
+</html>

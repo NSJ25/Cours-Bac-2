@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Windows – Arborescence & concepts Windows</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+h1 { text-align: center; }
+
+#quiz-box {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+#notes-content {
+    white-space: pre-wrap;
+}
+
+.answer { margin: 8px 0; }
+button { margin: 6px 5px 0 0; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+
+#progress { text-align: center; margin-bottom: 10px; font-weight: bold; }
+.feedback { margin-top: 10px; font-weight: bold; }
+
+/* ===== NOTES ===== */
+#notes-box {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+}
+
+#notes-buttons button {
+    background: #e3e7ed;
+    border: none;
+    border-radius: 6px;
+}
+
+#notes-content {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f9fafc;
+    border-left: 4px solid #4a90e2;
+    min-height: 80px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📝 Quiz Windows – Arborescence & concepts Windows</h1>
+
+<div id="quiz-box">
+
+    <div id="progress"></div>
+    <div id="question"></div>
+    <div id="answers"></div>
+
+    <button id="checkBtn">✅ Vérifier</button>
+    <button id="nextBtn" disabled>➡️ Suivant</button>
+
+    <div id="feedback" class="feedback"></div>
+
+    <!-- ===== NOTES ===== -->
+    <div id="notes-box">
+        <h3>📘 Notes & rappels</h3>
+        <div id="notes-buttons"></div>
+        <div id="notes-content">Clique sur un sujet pour afficher l’explication.</div>
+    </div>
+
+</div>
+
+<script>
+// ======= QUESTIONS (TON CODE INTACT) =======
+const questions = [
+{ q:"Quel est le rôle du répertoire $Recycle.Bin ?", a:{A:"Stocker temporairement les fichiers supprimés par utilisateur",B:"Contenir les fichiers système critiques",C:"Héberger les profils utilisateurs",D:"Stocker les pilotes matériels"}, c:"A"},
+{ q:"Quel est le rôle principal de $WinREAgent ?", a:{A:"Fournir les outils de récupération du système Windows",B:"Stocker les profils utilisateurs",C:"Contenir les journaux réseau",D:"Héberger les pilotes graphiques"}, c:"A"},
+{ q:"Le dossier Documents and Settings est aujourd’hui :", a:{A:"Une jonction NTFS vers C:\\Users",B:"Un dossier supprimé",C:"Un dossier temporaire",D:"Un dossier réseau"}, c:"A"},
+{ q:"Quel est le contenu principal du dossier inetpub ?", a:{A:"Pages web, scripts et journaux IIS",B:"Profils utilisateurs",C:"Fichiers de mise à jour Windows",D:"Fichiers de démarrage"}, c:"A"},
+{ q:"Quel type d’applications est stocké dans Program Files ?", a:{A:"Applications 64 bits",B:"Applications 16 bits",C:"Applications UWP uniquement",D:"Applications portables"}, c:"A"},
+
+
+{ q:"À quoi sert le dossier Program Files (x86) ?", a:{A:"Stocker les applications 32 bits sur un OS 64 bits",B:"Stocker les pilotes matériels",C:"Héberger le noyau Windows",D:"Stocker les applications 64 bits"}, c:"A"},
+{ q:"Quel est le rôle du dossier ProgramData ?", a:{A:"Stocker des données applicatives communes à tous les utilisateurs",B:"Stocker les profils utilisateurs",C:"Contenir les fichiers temporaires",D:"Héberger les pilotes"}, c:"A"},
+{ q:"Le dossier System Volume Information contient :", a:{A:"Les points de restauration système",B:"Les fichiers utilisateurs",C:"Les fichiers temporaires",D:"Les pilotes réseau"}, c:"A"},
+{ q:"Quel est le rôle du dossier Public ?", a:{A:"Permettre le partage de fichiers entre tous les utilisateurs",B:"Contenir les fichiers système",C:"Stocker les données temporaires",D:"Héberger les services Windows"}, c:"A"},
+{ q:"À quoi sert le fichier pagefile.sys ?", a:{A:"Étendre la mémoire vive sur le disque",B:"Stocker les journaux système",C:"Chiffrer les fichiers",D:"Gérer le démarrage"}, c:"A"},
+
+
+{ q:"Quel est le rôle de hiberfil.sys ?", a:{A:"Sauvegarder le contenu de la RAM lors de l’hibernation",B:"Étendre la mémoire virtuelle",C:"Stocker les fichiers temporaires",D:"Contenir les logs système"}, c:"A"},
+{ q:"À quoi sert swapfile.sys ?", a:{A:"Gérer la mise en veille des applications UWP",B:"Stocker les pilotes graphiques",C:"Gérer le registre",D:"Chiffrer la RAM"}, c:"A"},
+{ q:"Quel mode consomme le moins d’énergie ?", a:{A:"Hibernation",B:"Veille",C:"Veille simple",D:"Mode actif"}, c:"A"},
+{ q:"Quel mode offre une reprise immédiate ?", a:{A:"Veille (Sleep)",B:"Hibernation",C:"Arrêt complet",D:"Mode sécurisé"}, c:"A"},
+{ q:"Quel est le rôle principal de la base de registre Windows ?", a:{A:"Centraliser la configuration du système et des applications",B:"Stocker les fichiers utilisateurs",C:"Héberger les pilotes",D:"Contenir les journaux"}, c:"A"},
+
+
+{ q:"Où se trouve le registre utilisateur ?", a:{A:"C:\\Users\\<Nom>\\NTUSER.DAT",B:"C:\\Windows\\Registry",C:"C:\\ProgramData\\Registry",D:"C:\\System32\\Reg"}, c:"A"},
+{ q:"Quelle ruche contient les paramètres de l’utilisateur courant ?", a:{A:"HKEY_CURRENT_USER",B:"HKEY_LOCAL_MACHINE",C:"HKEY_CLASSES_ROOT",D:"HKEY_USERS"}, c:"A"},
+{ q:"Quel est l’équivalent du registre Windows sous Linux ?", a:{A:"Des fichiers de configuration texte répartis (/etc, ~/.config)",B:"Une base SQL centrale",C:"Un registre binaire",D:"Une API unique"}, c:"A"},
+{ q:"Quel est l’objectif de définir une application par défaut pour les PDF ?", a:{A:"Associer automatiquement un type de fichier à un programme",B:"Chiffrer les fichiers PDF",C:"Modifier le registre manuellement",D:"Supprimer les anciennes associations"}, c:"A"},
+{ q:"Que signifie la création massive de fichiers et clés lors d’une installation ?", a:{A:"Un comportement normal d’installation logicielle",B:"Une activité malveillante",C:"Une corruption du système",D:"Une erreur critique"}, c:"A"},
+
+
+{ q:"Où se situe le dossier VirtualStore ?", a:{A:"C:\\Users\\<NomUtilisateur>\\AppData\\Local\\VirtualStore",B:"C:\\Windows\\VirtualStore",C:"C:\\Program Files\\VirtualStore",D:"C:\\Temp\\VirtualStore"}, c:"A"},
+{ q:"Quel est le rôle du VirtualStore ?", a:{A:"Rediriger les écritures d’anciens programmes vers un dossier utilisateur",B:"Chiffrer les fichiers système",C:"Gérer la mémoire virtuelle",D:"Remplacer UAC"}, c:"A"},
+{ q:"Quel compte est utilisé pour installer une application ?", a:{A:"Un compte Administrateur",B:"Un compte Invité",C:"Un compte standard",D:"Un compte temporaire"}, c:"A"},
+{ q:"Qu’est-ce que l’UAC ?", a:{A:"Un mécanisme de contrôle des privilèges administrateur",B:"Un antivirus",C:"Un gestionnaire de fichiers",D:"Un service réseau"}, c:"A"},
+{ q:"Où placer des fichiers à partager entre plusieurs utilisateurs ?", a:{A:"C:\\Users\\Public",B:"C:\\Windows",C:"C:\\Program Files",D:"C:\\System32"}, c:"A"},
+
+
+{ q:"Qui peut écrire à la racine du disque C:\\ ?", a:{A:"Un administrateur avec élévation de privilèges",B:"Tous les utilisateurs",C:"Les invités",D:"Les applications portables"}, c:"A"},
+{ q:"Où sont stockés les fichiers temporaires d’un utilisateur ?", a:{A:"C:\\Users\\<Nom>\\AppData\\Local\\Temp",B:"C:\\Windows\\Temp",C:"C:\\Program Files\\Temp",D:"C:\\System32\\Temp"}, c:"A"},
+{ q:"À quoi servent les variables d’environnement ?", a:{A:"Fournir des informations système et utilisateur aux applications",B:"Chiffrer le disque",C:"Gérer le démarrage",D:"Installer les pilotes"}, c:"A"},
+{ q:"Quelle commande affiche les variables d’environnement en CMD ?", a:{A:"set",B:"env",C:"vars",D:"list"}, c:"A"},
+{ q:"Quel est l’avantage principal d’une application portable ?", a:{A:"Ne pas modifier le registre ni le système",B:"Installer des services",C:"Accéder au noyau",D:"Nécessiter des droits administrateur"}, c:"A"},
+
+{ q:"À quoi sert le dossier PerfLogs ?", a:{A:"Stocker les journaux de performances du système",B:"Stocker les profils utilisateurs",C:"Stocker les fichiers temporaires",D:"Contenir les pilotes matériels"}, c:"A"},
+{ q:"Qu’est-ce que le dossier PerfLogs ?", a:{A:"Un dossier utilisé par les outils de monitoring et de diagnostic Windows",B:"Un dossier utilisateur caché",C:"Un dossier réseau",D:"Une jonction NTFS"}, c:"A"},
+{ q:"À quoi sert le dossier Program Files ?", a:{A:"Contenir les applications 64 bits",B:"Contenir les applications 32 bits",C:"Contenir les applications portables",D:"Contenir les pilotes système"}, c:"A"},
+{ q:"À quoi sert le dossier Program Files (x86) ?", a:{A:"Contenir les applications 32 bits sur un OS 64 bits",B:"Contenir les applications 64 bits",C:"Contenir les pilotes graphiques",D:"Contenir le noyau Windows"}, c:"A"},
+{ q:"Quel est l’objectif principal des dossiers Program Files ?", a:{A:"Centraliser les fichiers des applications installées",B:"Stocker les profils utilisateurs",C:"Stocker les fichiers temporaires",D:"Héberger le registre"}, c:"A"},
+
+
+{ q:"À quoi sert le dossier ProgramData ?", a:{A:"Stocker des données applicatives communes à tous les utilisateurs",B:"Stocker les profils utilisateurs",C:"Contenir les fichiers personnels",D:"Contenir les fichiers temporaires"}, c:"A"},
+{ q:"Le dossier ProgramData est :", a:{A:"Caché par défaut et partagé par toutes les applications",B:"Visible par défaut et réservé à l’administrateur",C:"Une jonction NTFS",D:"Un dossier temporaire"}, c:"A"},
+{ q:"À quoi sert le dossier Users ?", a:{A:"Contenir les profils utilisateurs locaux",B:"Contenir les pilotes système",C:"Contenir les applications",D:"Contenir le registre système"}, c:"A"},
+{ q:"À quoi correspond le dossier Default User ?", a:{A:"Un modèle de profil utilisé lors de la création d’un nouvel utilisateur",B:"Un utilisateur administrateur caché",C:"Un utilisateur système",D:"Un utilisateur désactivé"}, c:"A"},
+{ q:"À quoi sert le dossier Public ?", a:{A:"Partager des fichiers entre tous les utilisateurs locaux",B:"Stocker les fichiers système",C:"Stocker les fichiers temporaires",D:"Héberger les services Windows"}, c:"A"},
+
+
+{ q:"Le dossier All Users est aujourd’hui :", a:{A:"Une jonction NTFS vers ProgramData",B:"Un dossier supprimé",C:"Un dossier utilisateur actif",D:"Un dossier temporaire"}, c:"A"},
+{ q:"Le dossier Documents and Settings est :", a:{A:"Une jonction NTFS vers C:\\Users",B:"Un ancien dossier encore utilisé",C:"Un dossier système actif",D:"Un dossier réseau"}, c:"A"},
+{ q:"À quoi sert le dossier Recovery ?", a:{A:"Contenir les outils de récupération Windows (WinRE)",B:"Stocker les profils utilisateurs",C:"Contenir les pilotes",D:"Stocker les journaux"}, c:"A"},
+{ q:"Que contient le dossier System Volume Information ?", a:{A:"Les points de restauration et métadonnées du système",B:"Les fichiers utilisateurs",C:"Les journaux applicatifs",D:"Les pilotes réseau"}, c:"A"},
+{ q:"Pourquoi le dossier System Volume Information est-il protégé ?", a:{A:"Pour garantir la sécurité et l’intégrité du système",B:"Pour améliorer les performances",C:"Pour stocker les applications",D:"Pour héberger le registre"}, c:"A"},
+
+
+{ q:"Quel est le rôle du fichier pagefile.sys ?", a:{A:"Étendre la mémoire RAM via le disque (mémoire virtuelle)",B:"Stocker les mots de passe",C:"Gérer l’hibernation",D:"Chiffrer le disque"}, c:"A"},
+{ q:"Quel est le rôle du fichier hiberfil.sys ?", a:{A:"Sauvegarder la RAM lors de l’hibernation",B:"Étendre la mémoire virtuelle",C:"Stocker les journaux système",D:"Gérer la veille simple"}, c:"A"},
+{ q:"Quelle est la différence entre la veille et l’hibernation ?", a:{A:"La veille conserve la RAM alimentée, l’hibernation écrit la RAM sur disque",B:"Les deux sont identiques",C:"La veille consomme plus que l’hibernation",D:"L’hibernation garde la RAM alimentée"}, c:"A"},
+{ q:"Qu’est-ce que la veille hybride ?", a:{A:"Une combinaison de la veille et de l’hibernation",B:"Une veille sans consommation",C:"Une veille réseau",D:"Une veille réservée aux portables"}, c:"A"},
+{ q:"Quel est l’avantage principal de la veille hybride ?", a:{A:"Protection contre la perte d’alimentation avec reprise rapide",B:"Démarrage plus lent",C:"Consommation plus élevée",D:"Désactivation du disque"}, c:"A"},
+
+
+{ q:"Quel mode consomme le moins d’énergie ?", a:{A:"Hibernation",B:"Veille",C:"Veille hybride",D:"Mode actif"}, c:"A"},
+{ q:"À quoi sert la base de registre Windows ?", a:{A:"Centraliser la configuration du système et des applications",B:"Stocker les fichiers utilisateurs",C:"Stocker les journaux",D:"Héberger les pilotes"}, c:"A"},
+{ q:"Où est stocké le registre utilisateur ?", a:{A:"Dans le fichier NTUSER.DAT du profil utilisateur",B:"Dans System32",C:"Dans ProgramData",D:"Dans le BIOS"}, c:"A"},
+{ q:"Pourquoi les applications installées écrivent-elles dans ProgramData ?", a:{A:"Pour partager des données entre tous les utilisateurs",B:"Pour stocker les exécutables",C:"Pour stocker les pilotes",D:"Pour stocker les profils"}, c:"A"},
+{ q:"Pourquoi les utilisateurs standards ne peuvent-ils pas écrire dans Program Files ?", a:{A:"Pour des raisons de sécurité et d’intégrité du système",B:"Pour améliorer les performances",C:"Pour éviter la fragmentation",D:"Pour simplifier l’arborescence"}, c:"A"},
+
+
+{ q:"À quoi sert le dossier Temp d’un utilisateur ?", a:{A:"Stocker les fichiers temporaires propres à l’utilisateur",B:"Stocker les pilotes",C:"Stocker les journaux système",D:"Stocker les fichiers de démarrage"}, c:"A"},
+{ q:"Où se trouve le dossier Temp d’un utilisateur ?", a:{A:"C:\\Users\\<Nom>\\AppData\\Local\\Temp",B:"C:\\Windows\\Temp",C:"C:\\Temp",D:"C:\\System32\\Temp"}, c:"A"},
+{ q:"Pourquoi Windows utilise-t-il des jonctions NTFS ?", a:{A:"Pour assurer la rétrocompatibilité avec les anciennes applications",B:"Pour améliorer les performances disque",C:"Pour sécuriser les fichiers",D:"Pour remplacer les raccourcis"}, c:"A"},
+{ q:"Quel est l’objectif principal de l’arborescence Windows ?", a:{A:"Séparer clairement système, applications et données utilisateurs",B:"Stocker tous les fichiers au même endroit",C:"Simplifier le BIOS",D:"Remplacer le registre"}, c:"A"},
+{ q:"Pourquoi certaines suppressions de dossiers système sont interdites ?", a:{A:"Pour éviter une corruption ou un arrêt du système",B:"Pour économiser de l’espace disque",C:"Pour limiter l’utilisateur",D:"Pour ralentir Windows"}, c:"A"}
+
+];
+// ======= MÉLANGE =======
+function shuffle(array) {
+    for (let i=array.length-1; i>0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+shuffle(questions);
+
+let index = 0;
+let score = 0;
+let answered = false;
+
+const qDiv = document.getElementById("question");
+const aDiv = document.getElementById("answers");
+const progress = document.getElementById("progress");
+const feedback = document.getElementById("feedback");
+const checkBtn = document.getElementById("checkBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+function loadQuestion() {
+    answered = false;
+    feedback.textContent = "";
+    nextBtn.disabled = true;
+
+    const q = questions[index];
+    progress.textContent = `Question ${index + 1} / ${questions.length}`;
+    qDiv.innerHTML = `<h3>${q.q}</h3>`;
+    aDiv.innerHTML = "";
+
+    let answers = Object.entries(q.a).map(([key,text])=>({
+        key,
+        text,
+        correct: key===q.c
+    }));
+    shuffle(answers);
+
+    answers.forEach(ans=>{
+        aDiv.innerHTML += `
+        <div class="answer">
+            <label>
+                <input type="radio" name="answer" value="${ans.correct}">
+                ${ans.text}
+            </label>
+        </div>`;
+    });
+}
+
+function checkAnswer() {
+    if(answered) return;
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if(!selected) return alert("⚠️ Sélectionne une réponse");
+
+    answered = true;
+    nextBtn.disabled = false;
+
+    if(selected.value==="true") {
+        score++;
+        feedback.style.color = "green";
+        feedback.textContent = "✅ Bonne réponse !";
+    } else {
+        feedback.style.color = "red";
+        const good = document.querySelector('input[value="true"]').parentElement.textContent;
+        feedback.innerHTML = `❌ Mauvaise réponse.<br>✔️ ${good}`;
+    }
+}
+
+function nextQuestion() {
+    index++;
+    if(index < questions.length) {
+        loadQuestion();
+    } else {
+        const percent = Math.round((score/questions.length)*100);
+        let msg = percent >= 50 ? "🎉 Félicitations, vous avez réussi !" : "❌ Tu es une grosse merde, retente ta chance, bouffon !";
+        document.getElementById("quiz-box").innerHTML =
+        `<h2>Résultat final</h2>
+         <p>Score : <strong>${score} / ${questions.length}</strong></p>
+         <p>Pourcentage : <strong>${percent}%</strong></p>
+         <p>${msg}</p>`;
+    }
+}
+
+checkBtn.addEventListener("click", checkAnswer);
+nextBtn.addEventListener("click", nextQuestion);
+
+// ======= NOTES / RAPPELS =======
+const notesTopics = [
+{
+  title: "Répertoire $Recycle.Bin",
+  content: "Stocke temporairement les fichiers supprimés par les utilisateurs avant leur suppression définitive. Permet de restaurer des fichiers supprimés par erreur."
+},
+
+{
+  title: "$WinREAgent",
+  content: "Fournit les outils de récupération du système Windows (WinRE) pour restaurer le système en cas de problème."
+},
+
+{
+  title: "Documents and Settings",
+  content: "Ancien dossier de profils utilisateurs sur Windows, aujourd'hui remplacé par C:\\Users. Il est souvent une jonction NTFS vers ce dernier."
+},
+
+{
+  title: "Dossier inetpub",
+  content: "Contient les pages web, scripts et journaux pour IIS (Internet Information Services)."
+},
+
+{
+  title: "Program Files",
+  content: "Stocke les applications 64 bits installées sur un système 64 bits."
+},
+
+{
+  title: "Program Files (x86)",
+  content: "Stocke les applications 32 bits sur un système Windows 64 bits."
+},
+
+{
+  title: "ProgramData",
+  content: "Stocke des données applicatives communes à tous les utilisateurs. Ce dossier est caché par défaut."
+},
+
+{
+  title: "System Volume Information",
+  content: "Contient les points de restauration système et autres métadonnées critiques pour le système. Protégé pour assurer l'intégrité du système."
+},
+
+{
+  title: "Dossier Public",
+  content: "Permet le partage de fichiers entre tous les utilisateurs locaux du système."
+},
+
+{
+  title: "pagefile.sys",
+  content: "Fichier de mémoire virtuelle utilisé pour étendre la mémoire RAM sur le disque dur."
+},
+
+{
+  title: "hiberfil.sys",
+  content: "Sauvegarde le contenu de la RAM lors de l'hibernation pour permettre la reprise de session complète."
+},
+
+{
+  title: "swapfile.sys",
+  content: "Fichier spécifique pour gérer la mise en veille et l'exécution des applications UWP (Universal Windows Platform)."
+},
+
+{
+  title: "Modes de veille",
+  content: "Hibernation : consomme le moins d’énergie, écrit le contenu de la RAM sur le disque.\nVeille (Sleep) : reprise immédiate mais consomme un peu d’énergie.\nVeille hybride : combinaison des deux pour reprise rapide et protection contre perte de courant."
+},
+
+{
+  title: "Registre Windows",
+  content: "Base de données centralisée qui contient la configuration du système et des applications. Les profils utilisateurs sont stockés dans NTUSER.DAT et les paramètres globaux dans HKEY_LOCAL_MACHINE."
+},
+
+{
+  title: "VirtualStore",
+  content: "Redirige les écritures d’anciens programmes vers un dossier utilisateur pour assurer compatibilité avec UAC et sécurité."
+},
+
+{
+  title: "UAC (User Account Control)",
+  content: "Mécanisme de contrôle des privilèges administrateurs. Demande confirmation pour certaines opérations sensibles pour protéger le système."
+},
+
+{
+  title: "Dossier Temp",
+  content: "Stocke les fichiers temporaires propres à l’utilisateur. Chemin typique : C:\\Users\\<Nom>\\AppData\\Local\\Temp."
+},
+
+{
+  title: "Jonctions NTFS",
+  content: "Permettent de rediriger les chemins pour assurer rétrocompatibilité avec les anciennes applications, tout en séparant système, données et applications."
+},
+
+{
+  title: "Arborescence Windows",
+  content: "Sépare clairement les fichiers système, les applications et les données utilisateurs pour garantir sécurité et organisation."
+},
+
+{
+  title: "ProgramData et All Users",
+  content: "ProgramData stocke les données partagées par toutes les applications et utilisateurs. All Users est une jonction NTFS vers ProgramData pour compatibilité avec les anciens logiciels."
+},
+
+{
+  title: "Default User",
+  content: "Modèle de profil utilisé lors de la création d’un nouvel utilisateur. Contient les paramètres par défaut de Windows."
+},
+
+{
+  title: "Recovery",
+  content: "Contient les outils de récupération Windows (WinRE) pour restaurer le système en cas de panne ou problème critique."
+},
+
+{
+  title: "PerfLogs",
+  content: "Dossier utilisé par les outils de monitoring et de diagnostic Windows pour stocker les journaux de performance."
+}
+
+];
+
+const notesButtons = document.getElementById("notes-buttons");
+const notesContent = document.getElementById("notes-content");
+
+notesTopics.forEach(topic => {
+    const btn = document.createElement("button");
+    btn.textContent = topic.title;
+    btn.onclick = () => notesContent.innerHTML = topic.content;
+    notesButtons.appendChild(btn);
+});
+
+loadQuestion();
+</script>
+
+</body>
+</html>
